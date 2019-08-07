@@ -1,14 +1,9 @@
 ### based on https://github.com/allenai/allennlp/blob/master/tutorials/tagger/README.md#using-config-files
 
 from typing import Iterator, List, Dict
-import shutil
-import tempfile
 
 import torch
-import numpy as np
 
-from allennlp.commands.train import train_model
-from allennlp.common.params import Params
 from allennlp.data import Instance
 from allennlp.data.dataset_readers import DatasetReader
 from allennlp.data.fields import TextField, SequenceLabelField
@@ -19,8 +14,8 @@ from allennlp.models import Model
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
-from allennlp.predictors import SentenceTaggerPredictor
 from allennlp.training.metrics import CategoricalAccuracy
+import allenCode.dataset_readers.amconll_aligned_lex   # just to register the reader
 
 torch.manual_seed(1)
 
@@ -87,20 +82,3 @@ class LstmTagger(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return {"accuracy": self.accuracy.get_metric(reset)}
 
-
-# In practice you'd probably do this from the command line:
-#   $ allennlp train tutorials/tagger/experiment.jsonnet -s /tmp/serialization_dir --include-package tutorials.tagger.config_allennlp
-#
-if __name__ == "__main__":
-    params = Params.from_file('../tutorialData/experiment.jsonnet')
-    serialization_dir = tempfile.mkdtemp()
-    model = train_model(params, serialization_dir)
-
-    # Make predictions
-    predictor = SentenceTaggerPredictor(model, dataset_reader=PosDatasetReader())
-    tag_logits = predictor.predict("The dog ate the apple")['tag_logits']
-    print(tag_logits)
-    tag_ids = np.argmax(tag_logits, axis=-1)
-    print([model.vocab.get_token_from_index(i, 'labels') for i in tag_ids])
-
-    shutil.rmtree(serialization_dir)
