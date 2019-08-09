@@ -15,7 +15,6 @@ from allennlp.modules.text_field_embedders import TextFieldEmbedder
 from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 from allennlp.training.metrics import CategoricalAccuracy
-import allenCode.dataset_readers.amconll_aligned_lex   # just to register the reader
 
 torch.manual_seed(1)
 

@@ -16,18 +16,15 @@ from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
 from allennlp.common.util import (dump_metrics, gpu_memory_mb, peak_memory_mb,
                                   lazy_groups_of)
-from allennlp.common.tqdm import Tqdm
 from allennlp.data.instance import Instance
 from allennlp.data.dataset_readers import DatasetReader
-from allennlp.data.iterators.data_iterator import DataIterator, TensorDict
+from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.model import Model
-from allennlp.nn import util as nn_util
 from allennlp.training.checkpointer import Checkpointer
 from allennlp.training.learning_rate_schedulers import LearningRateScheduler
 from allennlp.training.momentum_schedulers import MomentumScheduler
 from allennlp.predictors import Predictor, SentenceTaggerPredictor
 from allennlp.training.optimizers import Optimizer
-from allennlp.training.tensorboard_writer import TensorboardWriter
 from allennlp.training.trainer_base import TrainerBase
 from allennlp.training.trainer import Trainer, TrainerPieces
 from allennlp.training import util as training_util
@@ -175,15 +172,15 @@ class MyTrainer(Trainer):
                     if self.prediction_log_file and self.predictor:
                         for instance in self._validation_data[:5]:
                             logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
-                            print("---------------")
+                            # print("---------------")
                             for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
                                 prediction = str(word)+"("+str(gold)+"):\t"
                                 top_five = np.array(predictions).argsort()[-5:][::-1]
                                 top_five = [self.model.vocab.get_token_from_index(i, 'labels')+ " " + str(predictions[i]) for i in top_five]
                                 prediction += str(top_five)
                                 self.prediction_log_file.write(str(prediction)+"\n")
-                                print(prediction)
-                            print("---------------")
+                                # print(prediction)
+                            # print("---------------")
                             self.prediction_log_file.write("\n")
                         self.prediction_log_file.write("------------\n\n")
                         self.prediction_log_file.flush()
