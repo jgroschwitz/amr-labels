@@ -1,3 +1,5 @@
+from comet_ml import Experiment
+
 import logging
 import numpy as np
 import os
@@ -8,6 +10,7 @@ from typing import Dict, Optional, List, Tuple, Union, Iterable, Any
 
 import torch
 import torch.optim.lr_scheduler
+
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
@@ -66,6 +69,7 @@ class MyTrainer(Trainer):
                  should_log_learning_rate: bool = False,
                  log_batch_size_period: Optional[int] = None,
                  moving_average: Optional[MovingAverage] = None,
+                 comet_experiment: Experiment = None,
                  predictor: [Predictor] = None,
                  prediction_log_file: str = None) -> None:
         """
@@ -99,6 +103,7 @@ class MyTrainer(Trainer):
                          log_batch_size_period=log_batch_size_period,
                          moving_average=moving_average)
 
+        self.comet_experiment = comet_experiment
         self.predictor = predictor
         if prediction_log_file:
             self.prediction_log_file = open(prediction_log_file, "w")
@@ -191,6 +196,7 @@ class MyTrainer(Trainer):
 
                     # Check validation metric for early stopping
                     this_epoch_val_metric = val_metrics[self._validation_metric]
+                    self.comet_experiment.log_metric("validation_metric", this_epoch_val_metric)
                     self._metric_tracker.add_metric(this_epoch_val_metric)
 
                     if self._metric_tracker.should_stop_early():
@@ -255,6 +261,8 @@ class MyTrainer(Trainer):
         if best_model_state:
             self.model.load_state_dict(best_model_state)
 
+        self.comet_experiment.end()
+
         return metrics
 
 
@@ -300,7 +308,10 @@ class MyTrainer(Trainer):
         if model_device >= 0:
             # Moving model to GPU here so that the optimizer state gets constructed on
             # the right device.
+            print("running on GPU: "+str(model_device))
             model = model.cuda(model_device)
+        else:
+            print("running on CPU")
 
         parameters = [[n, p] for n, p in model.named_parameters() if p.requires_grad]
         optimizer = Optimizer.from_params(parameters, params.pop("optimizer"))
@@ -346,6 +357,11 @@ class MyTrainer(Trainer):
         should_log_learning_rate = params.pop_bool("should_log_learning_rate", False)
         log_batch_size_period = params.pop_int("log_batch_size_period", None)
 
+        #THISISNEW: comet.ml setup
+        comet_experiment_name= params.pop("comet_experiment_name", "amr-labels-experimentation")
+        comet_experiment = Experiment(api_key="Yt3xk2gaFeevDwlxSNzN2VUKh",
+                                project_name=comet_experiment_name, workspace="jgroschwitz", auto_metric_logging=False)
+
         params.assert_empty(cls.__name__)
         return cls(model, optimizer, iterator,
                    train_data, validation_data,
@@ -368,5 +384,6 @@ class MyTrainer(Trainer):
                    should_log_learning_rate=should_log_learning_rate,
                    log_batch_size_period=log_batch_size_period,
                    moving_average=moving_average,
+                   comet_experiment = comet_experiment,
                    predictor = predictor,# THISISNEW
                    prediction_log_file=prediction_log_file) # THISISNEW: storing the prediction log filepath here

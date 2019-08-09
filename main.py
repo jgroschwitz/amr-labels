@@ -1,5 +1,8 @@
 ### author: Jonas Groschwitz
 
+from comet_ml import Experiment
+
+import argparse
 
 import shutil
 import tempfile
@@ -16,8 +19,24 @@ import allenCode.jonas_trainer # TODO this is just for registering the trainer, 
 #   $ allennlp train tutorials/tagger/experiment.jsonnet -s /tmp/serialization_dir --include-package tutorials.tagger.config_allennlp
 #
 if __name__ == "__main__":
-    params = Params.from_file('data_formatting/experiment.jsonnet')
+
+    parser = argparse.ArgumentParser(description='Training label predictor')
+    parser.add_argument('--gpu', dest="gpu", type=int, default=-1,
+                        help='which gpu core to use (default -1, i.e. CPU)')
+    parser.add_argument('-e', dest='experiment_id', type=str,
+                        default=None,
+                        help='comet.ml experiment id')
+    parser.add_argument('-c', dest='config_file', type=str,
+                        default='data_formatting/experiment.jsonnet',
+                        help='path to config file')
+
+    args = parser.parse_args()
+
+    params = Params.from_file(args.config_file)
     serialization_dir = tempfile.mkdtemp()
+
+    params.get("trainer").__setitem__("cuda_device", args.gpu)
+
     model = train_model(params, serialization_dir)
 
     # Make predictions
