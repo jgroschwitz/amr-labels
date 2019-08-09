@@ -7,5 +7,5 @@
 export https_proxy="http://www-proxy.uni-saarland.de:3128"
 
 # activate the right conda environment
-conda activate --prefix /proj/irtg.shadow/jonas-conda/allennlp
+conda activate /proj/irtg.shadow/jonas-conda/allennlp
 
