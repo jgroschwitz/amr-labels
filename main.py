@@ -9,6 +9,7 @@ from allennlp.commands.train import train_model
 from allennlp.common.params import Params
 from allennlp.predictors import SentenceTaggerPredictor
 from allenCode.tagger import PosDatasetReader
+import allenCode.jonas_trainer # TODO this is just for registering the trainer, find a better way to do that!
 
 
 # In practice you'd probably do this from the command line:

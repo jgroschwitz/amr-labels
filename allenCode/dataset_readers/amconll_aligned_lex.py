@@ -13,9 +13,7 @@ from data_formatting.amconll_tools import parse_amconll, AMSentence
 @DatasetReader.register('amconll-aligned-lex')
 class AMAlignedLexReader(DatasetReader):
     """
-    DatasetReader for PoS tagging data, one sentence per line, like
-
-        The###DET dog###NN ate###V the###DET apple###NN
+    reads an amconll file, yielding all input information and the lexical label as target output (replacing the lemma placeholder if there is one)
     """
     def __init__(self, token_indexers: Dict[str, TokenIndexer] = None) -> None:
         super().__init__(lazy=False)
@@ -24,13 +22,27 @@ class AMAlignedLexReader(DatasetReader):
 
     def am_sent2instance(self, am_sentence: AMSentence) -> Instance:
         fields: Dict[str, Field] = {}
-        tokens = TextField([Token(w) for w in am_sentence.get_tokens(shadow_art_root=True)], self.token_indexers)
+        raw_words = am_sentence.get_tokens(shadow_art_root=True)
+        reps = am_sentence.get_replacements()
+        words = []
+        for word, rep in zip(raw_words, reps):
+            if rep in ["_name_", "_number_", "_date_"]:
+                words.append(rep) # currently just use the lemma for these to make the task easier
+            else:
+                words.append(word.lower()) # TODO possibly remove lowercasing again later, if we do something smarter than 1-hot later (bert, character, ...)
+
+        tokens = TextField([Token(w) for w in words], self.token_indexers)
         fields["sentence"] = tokens
         # fields["pos_tags"] = SequenceLabelField(am_sentence.get_pos(), tokens, label_namespace="pos")
         # fields["ner_tags"] = SequenceLabelField(am_sentence.get_ner(), tokens, label_namespace="ner_labels")
         # fields["lemmas"] = SequenceLabelField(am_sentence.get_lemmas(), tokens, label_namespace="lemmas")
-        fields["labels"] = SequenceLabelField(am_sentence.get_lexlabels(), tokens) #,label_namespace="lex_labels"
+        labels = am_sentence.get_lexlabels()
+        lemmas = am_sentence.get_lemmas()
+        labels = [label.replace("$LEMMA$", lemma).replace("$REPL$", lemma) for label, lemma in zip(labels, lemmas)] # TODO: ask Matthias about diff between $LEMMA$ and #REPL$ TODO: there is also $FORM$
+        fields["labels"] = SequenceLabelField(labels, tokens) #,label_namespace="lex_labels"
 
+        # print([str(t) for t in tokens])
+        # print([str(f) for f in fields["labels"]])
         return Instance(fields)
 
 

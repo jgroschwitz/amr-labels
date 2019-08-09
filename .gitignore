@@ -10,3 +10,5 @@ data_formatting/amr17/train/train.csv
 data_formatting/amr17/train/train.csv
 *.pyc
 data_formatting/amr-labels-helper-all-1.0.jar
+.idea/inspectionProfiles/profiles_settings.xml
+prediction_test.log

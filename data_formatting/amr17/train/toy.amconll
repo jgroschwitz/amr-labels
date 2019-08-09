@@ -1,0 +1,48 @@
+1	I	i	I	PRP	O	(d<root> / --LEX--)	$REPL$	()	2	APP_s	false
+2	understand	_	understand	VBP	O	(s<root> / --LEX--  :ARG0 (y<s>))	$LEMMA$-01	(s())	4	APP_s	false
+3	,	_	,	,	O	_	_	_	0	IGNORE	false
+4	but	_	but	CC	O	(s<root> / --LEX--  :ARG1 (w<s>)  :ARG2 (d<o>))	contrast-01	(o(), s())	0	ROOT	false
+5	see	_	see	VBP	O	(b<root> / --LEX--  :mode (explicitanon0 / imperative)  :ARG1 (g<s>)  :ARG0 (y / you))	$LEMMA$-01	(s())	4	APP_o	false
+6	my	_	my	PRP$	O	_	_	_	0	IGNORE	false
+7	above	_	above	JJ	O	(b<root> / --LEX--  :location-of (h<mod>))	$LEMMA$	(mod())	8	MOD_mod	false
+8	comment	_	comment	NN	O	(s<root> / --LEX--  :ARG1 (p<s>))	$LEMMA$-01	(s())	9	MOD_s	false
+9	.	_	.	.	O	(d<root> / --LEX--)	thing	()	5	APP_s	false
+
+1	I	i	I	PRP	O	(d<root> / --LEX--)	$REPL$	()	4	APP_o	false
+2	was	_	be	VBD	O	_	_	_	0	IGNORE	false
+3	really	_	really	RB	O	(s<root> / --LEX--  :degree-of (t<mod>))	$LEMMA$	(mod())	4	MOD_mod	false
+4	surprised	_	surprised	VBN	O	(s<root> / --LEX--  :ARG0 (y<s>)  :ARG1 (a<o>))	surprise-01	(o(), s())	0	ROOT	false
+5	how	_	how	WRB	O	(s<root> / --LEX--  :degree-of (t<mod>))	so	(mod())	7	MOD_mod	false
+6	professional	_	professional	JJ	O	(d<root> / --LEX--)	$LEMMA$	()	7	APP_op1	false
+7	and	_	and	CC	O	(a<root> / --LEX--  :op1 (b<op1>)  :op2 (g<op2>))	$LEMMA$	(op1(), op2())	4	APP_s	false
+8	not	_	not	RB	O	(explicitanon0<root> / --LEX--  :polarity-of (e<mod>))	-	(mod())	9	MOD_mod	false
+9	seedy	_	seedy	JJ	O	(d<root> / --LEX--)	$LEMMA$	()	7	APP_op2	false
+10	-LRB-	-lrb-	-lrb-	-LRB-	O	_	_	_	0	IGNORE	false
+11	hah	_	hah	NN	O	(p<root> / --LEX--  :mod-of (s<mod>))	$LEMMA$	(mod())	9	MOD_mod	false
+
+1	Since	since	since	IN	O	(s<root> / --LEX--  :ARG0 (y<s>))	cause-01	(s())	0	ROOT	false
+2	we	_	we	PRP	O	(d<root> / --LEX--)	$LEMMA$	()	5	APP_s	false
+3	seem	_	seem	VBP	O	(s<root> / --LEX--  :ARG1 (p<s>))	$LEMMA$-01	(s())	1	APP_s	false
+4	to	_	to	TO	O	_	_	_	0	IGNORE	false
+5	have	_	have	VB	O	(s<root> / --LEX--  :ARG0 (y<s>)  :ARG1 (a<o>))	$LEMMA$-03	(o(), s())	3	APP_s	false
+6	a	_	a	DT	O	_	_	_	0	IGNORE	false
+7	couple	_	couple	NN	O	(explicitanon0<root> / --LEX--  :quant-of (b<mod>))	$LEMMA$	(mod())	8	MOD_mod	false
+8	locals	_	local	NNS	O	(d<root> / --LEX--)	$LEMMA$	()	5	APP_o	false
+9	reading	_	read	VBG	O	(s<root> / --LEX--  :ARG0 (y<s>)  :ARG1 (a<o>))	$LEMMA$-01	(o(), s())	8	MOD_s	false
+10	this	_	this	DT	O	(p<root> / --LEX--  :mod-of (s<mod>))	$LEMMA$	(mod())	11	MOD_mod	false
+11	thread	_	thread	NN	O	(d<root> / --LEX--)	$LEMMA$	()	9	APP_o	false
+12	.	_	.	.	O	_	_	_	0	IGNORE	false
+
+1	I	i	I	PRP	O	(d<root> / --LEX--)	$REPL$	()	2	APP_s	false
+2	liked	_	like	VBD	O	(s<root> / --LEX--  :ARG0 (y<s>)  :ARG1 (a<o>))	$LEMMA$-01	(o(), s())	0	ROOT	false
+3	that	_	that	IN	O	_	_	_	0	IGNORE	false
+4	video	_	video	NN	O	(d<root> / --LEX--)	$LEMMA$	()	2	APP_o	false
+5	about	_	about	IN	O	_	_	_	0	IGNORE	false
+6	the	_	the	DT	O	_	_	_	0	IGNORE	false
+7	Building_#	_name_	#	NNP	MONEY	(n<root> / --LEX--  :name-of (s<mod>))	_NAME_	(mod())	9	MOD_mod	false
+8	13	_number_	13	CD	MONEY	_	_	_	0	IGNORE	false
+9	store	_	store	NN	O	(a<root> / --LEX--  :topic-of (w<mod>))	$LEMMA$	(mod())	4	MOD_mod	false
+10	somebody	_	somebody	NN	O	(d<root> / --LEX--)	$LEMMA$	()	11	APP_s	false
+11	posted	_	post	VBD	O	(s<root> / --LEX--  :ARG0 (y<s>)  :ARG1 (a<o>))	$LEMMA$-01	(o(), s())	4	MOD_o	false
+12	earlier	_	earlier	RBR	O	(e<root> / --LEX--  :degree (m / more)  :time-of (p<mod>))	early	(mod())	11	MOD_mod	false
+13	.	_	.	.	O	_	_	_	0	IGNORE	false

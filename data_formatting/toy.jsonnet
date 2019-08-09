@@ -1,13 +1,13 @@
 // jsonnet allows local variables like this
-local embedding_dim = 256;
-local hidden_dim = 256;
-local num_epochs = 100;
+local embedding_dim = 16;
+local hidden_dim = 16;
+local num_epochs = 400;
 local patience = 40;
-local batch_size = 20;
-local learning_rate = 0.001;
+local batch_size = 2;
+local learning_rate = 0.1;
 
 {
-    "train_data_path": 'data_formatting/amr17/train/train.amconll',
+    "train_data_path": 'data_formatting/amr17/train/toy.amconll',
     "validation_data_path": 'data_formatting/amr17/train/toy.amconll',
     "dataset_reader": {
         "type": "amconll-aligned-lex"
