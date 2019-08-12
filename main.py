@@ -31,7 +31,7 @@ if __name__ == "__main__":
                         action='store_true',
                         help='if set, no commet.ml logging will occur (speeds up debugging and declutters comet')
     parser.add_argument('-c', dest='config_file', type=str,
-                        default='data_formatting/experiment.jsonnet',
+                        default='data_formatting/bilstm.jsonnet',
                         help='path to config file')
 
     args = parser.parse_args()

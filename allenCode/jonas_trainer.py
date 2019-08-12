@@ -309,7 +309,7 @@ class MyTrainer(Trainer):
                     buckets.sort()
                     for i in buckets:
                         bucket_acc[i] = bucket_correct.get(i, 0) / (bucket_counts[i] - bucket_blanks.get(i, 0))
-                        self.dev_acc_by_bucket_file.write(str(i)+","+str(bucket_acc[i]))
+                        self.dev_acc_by_bucket_file.write(str(i)+","+str(bucket_acc[i])+"\n")
                     self.dev_acc_by_bucket_file.close()
 
                     if sum(bucket_blanks.values()) > 0:
