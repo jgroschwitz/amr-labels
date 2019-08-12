@@ -1,8 +1,8 @@
 // jsonnet allows local variables like this
 local embedding_dim = 256;
 local hidden_dim = 256;
-local num_epochs = 40;
-local patience = 40;
+local num_epochs = 10;
+local patience = 10;
 local batch_size = 64;
 local learning_rate = 0.001;
 
@@ -42,6 +42,7 @@ local learning_rate = 0.001;
             "type": "amconll-aligned-lex"
         },
         "prediction_log_file": 'prediction_test.log',
+        "dev_acc_by_bucket_file": 'acc_by_bucket.csv',
         "num_epochs": num_epochs,
         "optimizer": {
             "type": "adam",

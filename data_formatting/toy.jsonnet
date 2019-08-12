@@ -42,6 +42,7 @@ local learning_rate = 0.1;
             "type": "amconll-aligned-lex"
         },
         "prediction_log_file": 'prediction_test.log',
+        "dev_acc_by_bucket_file": 'bucket_accs_toy.csv',
         "num_epochs": num_epochs,
         "optimizer": {
             "type": "adam",

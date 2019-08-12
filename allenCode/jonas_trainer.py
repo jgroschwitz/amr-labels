@@ -12,6 +12,9 @@ import torch
 import torch.optim.lr_scheduler
 
 
+# THISISNEW
+from copying.copying import get_lemma_to_label_stats
+
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
 from allennlp.common.util import (dump_metrics, gpu_memory_mb, peak_memory_mb,
@@ -46,7 +49,7 @@ class MyTrainer(Trainer):
                  train_dataset: Iterable[Instance],
                  validation_dataset: Optional[Iterable[Instance]] = None,
                  patience: Optional[int] = None,
-                 validation_metric: str = "-accuracy",
+                 validation_metric: str = "+accuracy",
                  validation_iterator: DataIterator = None,
                  shuffle: bool = True,
                  num_epochs: int = 20,
@@ -68,7 +71,8 @@ class MyTrainer(Trainer):
                  moving_average: Optional[MovingAverage] = None,
                  comet_experiment: Experiment = None,
                  predictor: [Predictor] = None,
-                 prediction_log_file: str = None) -> None:
+                 prediction_log_file: str = None,
+                 dev_acc_by_bucket_file: str = None) -> None:
         """
         calls the Trainer initializer and also remembers where to write the prediction log
         """
@@ -106,6 +110,11 @@ class MyTrainer(Trainer):
             self.prediction_log_file = open(prediction_log_file, "w")
         else:
             self.prediction_log_file = None
+        if dev_acc_by_bucket_file:
+            self.dev_acc_by_bucket_file = open(dev_acc_by_bucket_file, "w")
+            self.train_lemma_stats = self.compute_train_lemma_stats()
+        else:
+            self.dev_acc_by_bucket_file = None
 
 
 
@@ -264,6 +273,57 @@ class MyTrainer(Trainer):
         if best_model_state:
             self.model.load_state_dict(best_model_state)
 
+        # THISISNEW: writing accuracy by bucket
+        if self._validation_data is not None:
+            with torch.no_grad():
+                if self.dev_acc_by_bucket_file and self.predictor:
+                    bucket_counts = dict()
+                    bucket_correct = dict()
+                    bucket_blanks = dict()
+                    bucket_blanks_correctly_predicted = dict()
+                    bucket_blanks_total_predicted = dict()
+                    for instance in self._validation_data:
+                        logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
+                        for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
+                            prediction = self.model.vocab.get_token_from_index(np.argmax(np.array(predictions)), 'labels')
+                            word = str(word)
+                            # print(word + "("+gold + "): "+prediction)
+                            bucket_id = self.train_lemma_stats.get(word, 0)
+                            bucket_counts[bucket_id] = bucket_counts.get(bucket_id, 0) + 1
+                            if prediction == gold:
+                                bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
+                                if gold == "_":
+                                    bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
+                                    bucket_blanks_correctly_predicted[
+                                        bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
+                            else:
+                                if gold == "_":
+                                    bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
+                            if prediction == "_":
+                                bucket_blanks_total_predicted[
+                                    bucket_id] = bucket_blanks_total_predicted.get(bucket_id, 0) + 1
+
+                    bucket_acc = dict()
+                    buckets = list(bucket_counts.keys())
+                    buckets.sort()
+                    for i in buckets:
+                        bucket_acc[i] = bucket_correct.get(i, 0) / (bucket_counts[i] - bucket_blanks.get(i, 0))
+                        self.dev_acc_by_bucket_file.write(str(i)+","+str(bucket_acc[i]))
+                    self.dev_acc_by_bucket_file.close()
+
+                    if sum(bucket_blanks.values()) > 0:
+                        blanks_recall = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks.values())
+                    else:
+                        blanks_recall = 1
+                    if sum(bucket_blanks_total_predicted.values()) > 0:
+                        blanks_precision = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks_total_predicted.values())
+                    else:
+                        blanks_precision = 1
+                    blanks_f = (2*blanks_recall*blanks_precision)/(blanks_recall+blanks_precision)
+                    print("blanks F/R/P: %.2f/%.2f/%.2f" % (blanks_f, blanks_recall, blanks_precision))
+
+
+
         if self.comet_experiment:
             self.comet_experiment.end()
 
@@ -295,7 +355,7 @@ class MyTrainer(Trainer):
                     validation_iterator: DataIterator = None) -> 'Trainer':
         # pylint: disable=arguments-differ
         patience = params.pop_int("patience", None)
-        validation_metric = params.pop("validation_metric", "-accuracy")
+        validation_metric = params.pop("validation_metric", "+accuracy")
         shuffle = params.pop_bool("shuffle", True)
         num_epochs = params.pop_int("num_epochs", 20)
         cuda_device = parse_cuda_device(params.pop("cuda_device", -1))
@@ -304,6 +364,7 @@ class MyTrainer(Trainer):
         lr_scheduler_params = params.pop("learning_rate_scheduler", None)
         momentum_scheduler_params = params.pop("momentum_scheduler", None)
         prediction_log_file = params.pop("prediction_log_file", None) # THISISNEW: storing the prediction log here
+        dev_acc_by_bucket_file = params.pop("dev_acc_by_bucket_file", None) # THISISNEW: storing accuracy by bucket here
 
         if isinstance(cuda_device, list):
             model_device = cuda_device[0]
@@ -323,6 +384,8 @@ class MyTrainer(Trainer):
         # THISISNEW:
         if "dataset_reader" in params:
             predictor = SentenceTaggerPredictor(model, dataset_reader=DatasetReader.from_params(params.pop("dataset_reader"))) # TODO: give predictor as parameter
+        else:
+            predictor=None
 
         if "moving_average" in params:
             moving_average = MovingAverage.from_params(params.pop("moving_average"), parameters=parameters)
@@ -393,4 +456,17 @@ class MyTrainer(Trainer):
                    moving_average=moving_average,
                    comet_experiment = comet_experiment,
                    predictor = predictor,# THISISNEW
-                   prediction_log_file=prediction_log_file) # THISISNEW: storing the prediction log filepath here
+                   prediction_log_file=prediction_log_file, # THISISNEW: storing the prediction log filepath here
+                   dev_acc_by_bucket_file=dev_acc_by_bucket_file) # THISISNEW: storing accuracy by bucket here
+
+
+
+    # THISISNEW
+    def compute_train_lemma_stats(self) -> Dict[str, int]:
+        ret = dict()
+        for instance in self.train_data:
+            for word in instance["sentence"]:
+                ret[word] = ret.get(word, 0) + 1
+        for word in ret.keys():
+            ret[word] = int(np.round(np.exp(np.round(np.log(ret[word]))))) # round within log space to get bucket
+        return ret

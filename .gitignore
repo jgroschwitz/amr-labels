@@ -13,3 +13,9 @@ data_formatting/amr-labels-helper-all-1.0.jar
 .idea/inspectionProfiles/profiles_settings.xml
 prediction_test.log
 copying/.~lock.train_copy_stats.csv#
+copying/train_copy_stats.csv
+copying/dev_copy_stats_words.csv
+copying/train_copy_stats.csv
+copying/dev_copy_stats.csv
+copying/train_copy_stats.csv
+bucket_accs_toy.csv

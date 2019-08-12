@@ -38,7 +38,7 @@ class AMAlignedLexReader(DatasetReader):
         # fields["lemmas"] = SequenceLabelField(am_sentence.get_lemmas(), tokens, label_namespace="lemmas")
         labels = am_sentence.get_lexlabels()
         lemmas = am_sentence.get_lemmas()
-        labels = [label.replace("$LEMMA$", lemma).replace("$REPL$", lemma) for label, lemma in zip(labels, lemmas)] # TODO: ask Matthias about diff between $LEMMA$ and #REPL$ TODO: there is also $FORM$
+        labels = [label.replace("$LEMMA$", lemma).replace("$REPL$", rep) for label, lemma, rep in zip(labels, lemmas, reps)] #  TODO: there is also $FORM$
         fields["labels"] = SequenceLabelField(labels, tokens) #,label_namespace="lex_labels"
 
         # print([str(t) for t in tokens])
