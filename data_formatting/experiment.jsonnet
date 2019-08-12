@@ -8,7 +8,7 @@ local learning_rate = 0.001;
 
 {
     "train_data_path": 'data_formatting/amr17/train/train.amconll',
-    "validation_data_path": 'data_formatting/amr17/train/toy.amconll',
+    "validation_data_path": 'data_formatting/amr17/dev/gold-dev.amconll',
     "dataset_reader": {
         "type": "amconll-aligned-lex"
     },
