@@ -291,11 +291,12 @@ class MyTrainer(Trainer):
                             bucket_id = self.train_lemma_stats.get(word, 0)
                             bucket_counts[bucket_id] = bucket_counts.get(bucket_id, 0) + 1
                             if prediction == gold:
-                                bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
                                 if gold == "_":
                                     bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
                                     bucket_blanks_correctly_predicted[
                                         bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
+                                else:
+                                    bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
                             else:
                                 if gold == "_":
                                     bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
