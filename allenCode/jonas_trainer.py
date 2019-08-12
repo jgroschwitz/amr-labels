@@ -467,6 +467,7 @@ class MyTrainer(Trainer):
         ret = dict()
         for instance in self.train_data:
             for word in instance["sentence"]:
+                word = str(word).lower()
                 ret[word] = ret.get(word, 0) + 1
         for word in ret.keys():
             ret[word] = int(np.round(np.exp(np.round(np.log(ret[word]))))) # round within log space to get bucket
