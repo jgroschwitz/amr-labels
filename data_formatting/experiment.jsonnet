@@ -3,7 +3,7 @@ local embedding_dim = 256;
 local hidden_dim = 256;
 local num_epochs = 40;
 local patience = 40;
-local batch_size = 256;
+local batch_size = 64;
 local learning_rate = 0.001;
 
 {

@@ -46,7 +46,7 @@ class MyTrainer(Trainer):
                  train_dataset: Iterable[Instance],
                  validation_dataset: Optional[Iterable[Instance]] = None,
                  patience: Optional[int] = None,
-                 validation_metric: str = "-loss",
+                 validation_metric: str = "-accuracy",
                  validation_iterator: DataIterator = None,
                  shuffle: bool = True,
                  num_epochs: int = 20,
@@ -154,6 +154,7 @@ class MyTrainer(Trainer):
             #                 print()
 
             epoch_start_time = time.time()
+            print("Epoch "+str(epoch)+ " training")
             train_metrics = self._train_epoch(epoch)
 
             # get peak of memory usage
@@ -165,12 +166,13 @@ class MyTrainer(Trainer):
                     metrics["peak_"+key] = max(metrics.get("peak_"+key, 0), value)
 
             if self._validation_data is not None:
+                print("Validation")
                 with torch.no_grad():
 
                     # THISISNEW: writing to the prediction log here
                     # TODO: maybe remove the printing again and do the whole dev set (or larger segment), but the current version is useful right now
                     if self.prediction_log_file and self.predictor:
-                        for instance in self._validation_data[:5]:
+                        for instance in self._validation_data[:50]:
                             logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
                             # print("---------------")
                             for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
@@ -190,10 +192,13 @@ class MyTrainer(Trainer):
                     # We have a validation set, so compute all the metrics on it.
                     val_loss, num_batches = self._validation_loss()
                     val_metrics = training_util.get_metrics(self.model, val_loss, num_batches, reset=True)
+                    # print("val_metrics")
+                    # print(val_metrics)
 
                     # Check validation metric for early stopping
                     this_epoch_val_metric = val_metrics[self._validation_metric]
-                    self.comet_experiment.log_metric("validation_metric", this_epoch_val_metric)
+                    if self.comet_experiment:
+                        self.comet_experiment.log_metric("validation_metric", this_epoch_val_metric)
                     self._metric_tracker.add_metric(this_epoch_val_metric)
 
                     if self._metric_tracker.should_stop_early():
@@ -240,6 +245,7 @@ class MyTrainer(Trainer):
 
             epoch_elapsed_time = time.time() - epoch_start_time
             logger.info("Epoch duration: %s", datetime.timedelta(seconds=epoch_elapsed_time))
+            print()
 
             if epoch < self._num_epochs - 1:
                 training_elapsed_time = time.time() - training_start_time
@@ -258,7 +264,8 @@ class MyTrainer(Trainer):
         if best_model_state:
             self.model.load_state_dict(best_model_state)
 
-        self.comet_experiment.end()
+        if self.comet_experiment:
+            self.comet_experiment.end()
 
         return metrics
 
@@ -288,7 +295,7 @@ class MyTrainer(Trainer):
                     validation_iterator: DataIterator = None) -> 'Trainer':
         # pylint: disable=arguments-differ
         patience = params.pop_int("patience", None)
-        validation_metric = params.pop("validation_metric", "-loss")
+        validation_metric = params.pop("validation_metric", "-accuracy")
         shuffle = params.pop_bool("shuffle", True)
         num_epochs = params.pop_int("num_epochs", 20)
         cuda_device = parse_cuda_device(params.pop("cuda_device", -1))
@@ -355,9 +362,12 @@ class MyTrainer(Trainer):
         log_batch_size_period = params.pop_int("log_batch_size_period", None)
 
         #THISISNEW: comet.ml setup
-        comet_experiment_name= params.pop("comet_experiment_name", "amr-labels-experimentation")
-        comet_experiment = Experiment(api_key="Yt3xk2gaFeevDwlxSNzN2VUKh",
-                                project_name=comet_experiment_name, workspace="jgroschwitz", auto_metric_logging=False)
+        comet_experiment_name= params.pop("comet_experiment_name", None)
+        if comet_experiment_name:
+            comet_experiment = Experiment(api_key="Yt3xk2gaFeevDwlxSNzN2VUKh",
+                                    project_name=comet_experiment_name, workspace="jgroschwitz", auto_metric_logging=False)
+        else:
+            comet_experiment = None
 
         params.assert_empty(cls.__name__)
         return cls(model, optimizer, iterator,

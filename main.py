@@ -24,9 +24,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Training label predictor')
     parser.add_argument('--gpu', dest="gpu", type=int, default=-1,
                         help='which gpu core to use (default -1, i.e. CPU)')
-    parser.add_argument('-e', dest='experiment_id', type=str,
-                        default=None,
-                        help='comet.ml experiment id')
+    parser.add_argument('-e', dest='experiment_name', type=str,
+                        default="amr-labels-experimentation",
+                        help='comet.ml experiment name')
+    parser.add_argument('--noComet', dest='no_comet',
+                        action='store_true',
+                        help='if set, no commet.ml logging will occur (speeds up debugging and declutters comet')
     parser.add_argument('-c', dest='config_file', type=str,
                         default='data_formatting/experiment.jsonnet',
                         help='path to config file')
@@ -37,6 +40,12 @@ if __name__ == "__main__":
     serialization_dir = tempfile.mkdtemp()
 
     params.get("trainer").__setitem__("cuda_device", args.gpu)
+
+    if args.no_comet:
+        params.get("trainer").__setitem__("comet_experiment_name", None)
+    else:
+        params.get("trainer").__setitem__("comet_experiment_name", args.experiment_name)
+
 
     model = train_model(params, serialization_dir)
 
