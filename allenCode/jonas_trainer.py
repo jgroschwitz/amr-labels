@@ -285,24 +285,29 @@ class MyTrainer(Trainer):
                     for instance in self._validation_data:
                         logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
                         for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
-                            prediction = self.model.vocab.get_token_from_index(np.argmax(np.array(predictions)), 'labels')
+
                             word = str(word)
                             # print(word + "("+gold + "): "+prediction)
                             bucket_id = self.train_lemma_stats.get(word, 0)
                             bucket_counts[bucket_id] = bucket_counts.get(bucket_id, 0) + 1
-                            if prediction == gold:
-                                if gold == "_":
-                                    bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
-                                    bucket_blanks_correctly_predicted[
-                                        bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
-                                else:
-                                    bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
-                            else:
-                                if gold == "_":
-                                    bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
+                            if gold == "_":
+                                bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
+
+                            prediction = self.model.vocab.get_token_from_index(np.argmax(np.array(predictions)), 'labels')
                             if prediction == "_":
+                                # first count as (possibly correct) blank
                                 bucket_blanks_total_predicted[
                                     bucket_id] = bucket_blanks_total_predicted.get(bucket_id, 0) + 1
+                                if gold == "_":
+                                    bucket_blanks_correctly_predicted[
+                                        bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
+                                # now: want best non-blank(!) prediction
+                                second_best = np.array(predictions).argsort()[-2]
+                                prediction = self.model.vocab.get_token_from_index(second_best, 'labels')
+
+                            if prediction == gold:
+                                #note that since prediction is non-blank, this only applies when neither is blank.
+                                bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
 
                     bucket_acc = dict()
                     buckets = list(bucket_counts.keys())
