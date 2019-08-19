@@ -3,13 +3,21 @@ from data_formatting.amconll_tools import parse_amconll
 import numpy as np
 import operator
 
+from typing import Dict
+
+
+def get_sorted_keys(dictionary: Dict[str, int], reverse=True):
+    sorted_keys = list(dictionary.keys())
+    sorted_keys.sort(key=(lambda x: dictionary[x]), reverse=reverse)
+    return sorted_keys
+
 if __name__ == "__main__":
 
     train_data = parse_amconll(open("data_formatting/amr17/train/train.amconll"))
     dev_data = parse_amconll(open("data_formatting/amr17/dev/gold-dev.amconll"))
 
-    train_lemma2label_stats, train_lemma_counts = get_word_to_label_stats(train_data)
-    lemma2label_stats, lemma_counts = get_word_to_label_stats(dev_data)
+    train_lemma2label_stats, train_lemma_counts = get_lemma_to_label_stats(train_data)
+    lemma2label_stats, lemma_counts = get_lemma_to_label_stats(dev_data)
 
     bucket_counts = dict()
 
@@ -91,12 +99,31 @@ if __name__ == "__main__":
     print(bucket_acc_lemma_either)
     print(bucket_acc_mostfrequent)
 
-    with open("copying/dev_copy_stats_words.csv", "w") as f:
+    with open("copying/dev_copy_stats_lemmas.csv", "w") as f:
         f.write("mincount,total,blanks,non_blanks,acc_lem, acc_lem_v, acc_lem_either, acc_mostfrequent\n")
         for i in range(len(buckets)):
             bucket_id = buckets[i]
             f.write(str(bucket_id)+","+str(bucket_counts[bucket_id])+","+str(bucket_blanks[bucket_id])
                     + "," + str(bucket_counts[bucket_id]-bucket_blanks[bucket_id])+","+str(bucket_acc_lemma[i])
                         + "," + str(bucket_acc_lemma_v[i])+","+str(bucket_acc_lemma_either[i])+","+str(bucket_acc_mostfrequent[i])+"\n")
+
+    with open("copying/lemma_label_counts.txt", "w") as f:
+        sorted_lemmas = get_sorted_keys(train_lemma_counts)
+        for lemma in sorted_lemmas:
+            label_stats = train_lemma2label_stats[lemma]
+            f.write(lemma+"("+str(train_lemma_counts[lemma])+"/"+str(sum(label_stats.values()))+"):\n")
+            sorted_labels = get_sorted_keys(label_stats)
+            for label in sorted_labels[:10]:
+                f.write("\t"+label+": "+str(label_stats[label])+"\n")
+            f.write("\n")
+
+    with open("copying/unseen_words.txt", "w") as f:
+        for lemma in lemma2label_stats.keys():
+            if lemma not in train_lemma_counts.keys():
+                f.write(lemma + "\n")
+                for label in lemma2label_stats[lemma].keys():
+                    f.write(label+"\n")
+                f.write("\n")
+
 
 

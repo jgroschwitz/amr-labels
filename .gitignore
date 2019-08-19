@@ -20,3 +20,7 @@ copying/dev_copy_stats.csv
 copying/train_copy_stats.csv
 bucket_accs_toy.csv
 acc_by_bucket.csv
+copying/dev_copy_stats_lemmas.csv
+copying/lemma_label_counts.txt
+copying/unseen_words.txt
+copying/word_label_counts.txt
