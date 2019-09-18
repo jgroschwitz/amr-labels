@@ -10,10 +10,7 @@ def get_lemma_to_label_stats(sents: Iterable[AMSentence]) -> Tuple[Dict[str, Dic
                 lemma = lemma.lower()
             else:
                 lemma = rep.lower()
-            dict_here = ret.get(lemma, dict())
-            if len(dict_here) == 0:
-                ret[lemma] = dict_here
-            dict_here[label] = dict_here.get(label, 0)+1
+            add_nested_count(ret, lemma, label)
 
     lemma_counts = dict()
     for lemma , dict_here in ret.items():
@@ -31,10 +28,7 @@ def get_word_to_label_stats(sents: Iterable[AMSentence]) -> Tuple[Dict[str, Dict
                 word = word.lower()
             else:
                 word = rep.lower()
-            dict_here = ret.get(word, dict())
-            if len(dict_here) == 0:
-                ret[word] = dict_here
-            dict_here[label] = dict_here.get(label, 0)+1
+            add_nested_count(ret, word, label)
 
     lemma_counts = dict()
     for word , dict_here in ret.items():
@@ -42,5 +36,11 @@ def get_word_to_label_stats(sents: Iterable[AMSentence]) -> Tuple[Dict[str, Dict
 
     return ret, lemma_counts
 
+
+def add_nested_count(nested_dict: Dict[str, Dict[str,int]], key, value):
+    dict_here = nested_dict.get(key, dict())
+    if len(dict_here) == 0:
+        nested_dict[key] = dict_here
+    dict_here[value] = dict_here.get(value, 0) + 1
 
 

@@ -8,6 +8,36 @@ from allennlp.data.dataset_readers import DatasetReader
 from allennlp.data.fields import Field, TextField, SequenceLabelField
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 from data_formatting.amconll_tools import parse_amconll, AMSentence
+import re
+from external.amr import AMR
+
+
+# the following regex matches all sources
+source_regex = re.compile("<[a-z0-9]+>")
+preferred_secondary_nonlex = ["have-rel-role-91", "have-org-role-91", "rate-entity-91", "byline-91"]
+
+
+def get_nonlex_labels(supertag: str) -> List[str]:
+    """ gets all non-lexical labels from a supertag. Expects a supertag in the format amr--TYPE--type """
+
+
+    # first get just the amr from the typed sypertag
+    supertag = AMSentence.split_supertag(supertag)[0]
+    if supertag == "_":
+        return []
+    # remove the root
+    supertag = supertag.replace("<root>", "")
+    # replace remaining sources, which are at unlabeled nodes, with a dummy label (so that the AMR parser doesn't get confused)
+    # (we removed the root first because the root node is already labeled)
+    supertag = re.sub(source_regex, " / --SOURCE--", supertag)
+    # read the AMR with the method that comes with the Smatch script
+    amr = AMR.parse_AMR_line(supertag)
+    # now we can simply collect all labels ("node_values" in the external AMR code) that are not special --LEX-- or --SOURCE-- labels
+    nonlex_labels = []
+    for label in amr.node_values:
+        if not label == "--LEX--" and not label == "--SOURCE--":
+            nonlex_labels.append(label)
+    return nonlex_labels
 
 
 @DatasetReader.register('amconll-aligned-lex')
@@ -39,7 +69,30 @@ class AMAlignedLexReader(DatasetReader):
         labels = am_sentence.get_lexlabels()
         lemmas = am_sentence.get_lemmas()
         labels = [label.replace("$LEMMA$", lemma).replace("$REPL$", rep) for label, lemma, rep in zip(labels, lemmas, reps)] #  TODO: there is also $FORM$
-        fields["labels"] = SequenceLabelField(labels, tokens) #,label_namespace="lex_labels"
+        fields["labels1"] = SequenceLabelField(labels, tokens, label_namespace="labels") # the 'labels' namespace is actually the default
+
+        # get secondary labels from delexicalized supertag
+        nonlex_labels_for_sentence = [get_nonlex_labels(supertag) for supertag in am_sentence.get_supertags()]
+        labels2 = []
+        labels3 = []
+        for nonlex_labels_for_word in nonlex_labels_for_sentence:
+            if len(nonlex_labels_for_word) == 0:
+                labels2.append("_")
+                labels3.append("_")
+            elif len(nonlex_labels_for_word) == 1:
+                labels2.append(nonlex_labels_for_word[0])
+                labels3.append("_")
+            else:
+                # ignoring the case where the length is 3 or more
+                if nonlex_labels_for_word[0] in preferred_secondary_nonlex:
+                    nonlex_labels_for_word = [nonlex_labels_for_word[1], nonlex_labels_for_word[0]]
+                labels2.append(nonlex_labels_for_word[0])
+                labels3.append(nonlex_labels_for_word[1])
+
+        fields["labels2"] = SequenceLabelField(labels2, tokens,
+                                                   label_namespace="labels")  # the 'labels' namespace is actually the default
+        fields["labels3"] = SequenceLabelField(labels3, tokens,
+                                                   label_namespace="labels")  # the 'labels' namespace is actually the default
 
         # print([str(t) for t in tokens])
         # print([str(f) for f in fields["labels"]])
@@ -51,3 +104,5 @@ class AMAlignedLexReader(DatasetReader):
             am_sentences = parse_amconll(f)
             for sent in am_sentences:
                 yield self.am_sent2instance(sent)
+
+

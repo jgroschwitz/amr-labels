@@ -1,8 +1,8 @@
 // jsonnet allows local variables like this
 local embedding_dim = 16;
 local hidden_dim = 16;
-local num_epochs = 20;
-local patience = 20;
+local num_epochs = 40;
+local patience = 40;
 local batch_size = 2;
 local learning_rate = 0.1;
 
@@ -48,6 +48,7 @@ local learning_rate = 0.1;
             "type": "adam",
             "lr": learning_rate
         },
-        "patience": patience
+        "patience": patience,
+        "validation_metric": "+fscore"
     }
 }

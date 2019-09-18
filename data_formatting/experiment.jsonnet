@@ -48,6 +48,7 @@ local learning_rate = 0.001;
             "type": "adam",
             "lr": learning_rate
         },
-        "patience": patience
+        "patience": patience,
+        "validation_metric": "+fscore"
     }
 }

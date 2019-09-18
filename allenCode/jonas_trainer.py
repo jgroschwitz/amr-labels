@@ -179,22 +179,23 @@ class MyTrainer(Trainer):
                 with torch.no_grad():
 
                     # THISISNEW: writing to the prediction log here
+                    # TODO the trainer class does not seem the right place for this. make a logger interface of some sort?
                     # TODO: maybe remove the printing again and do the whole dev set (or larger segment), but the current version is useful right now
-                    if self.prediction_log_file and self.predictor:
-                        for instance in self._validation_data[:50]:
-                            logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
-                            # print("---------------")
-                            for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
-                                prediction = str(word)+"("+str(gold)+"):\t"
-                                top_five = np.array(predictions).argsort()[-5:][::-1]
-                                top_five = [self.model.vocab.get_token_from_index(i, 'labels')+ " " + str(predictions[i]) for i in top_five]
-                                prediction += str(top_five)
-                                self.prediction_log_file.write(str(prediction)+"\n")
-                                # print(prediction)
-                            # print("---------------")
-                            self.prediction_log_file.write("\n")
-                        self.prediction_log_file.write("------------\n\n")
-                        self.prediction_log_file.flush()
+                    # if self.prediction_log_file and self.predictor:
+                    #     for instance in self._validation_data[:50]:
+                    #         logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
+                    #         # print("---------------")
+                    #         for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
+                    #             prediction = str(word)+"("+str(gold)+"):\t"
+                    #             top_five = np.array(predictions).argsort()[-5:][::-1]
+                    #             top_five = [self.model.vocab.get_token_from_index(i, 'labels')+ " " + str(predictions[i]) for i in top_five]
+                    #             prediction += str(top_five)
+                    #             self.prediction_log_file.write(str(prediction)+"\n")
+                    #             # print(prediction)
+                    #         # print("---------------")
+                    #         self.prediction_log_file.write("\n")
+                    #     self.prediction_log_file.write("------------\n\n")
+                    #     self.prediction_log_file.flush()
 
 
 
@@ -206,8 +207,15 @@ class MyTrainer(Trainer):
 
                     # Check validation metric for early stopping
                     this_epoch_val_metric = val_metrics[self._validation_metric]
+                    # THISISNEW log metrics in comet
                     if self.comet_experiment:
-                        self.comet_experiment.log_metric("validation_metric", this_epoch_val_metric)
+                        for metric_label, metric in val_metrics.items():
+                            # TODO case distinctions for all the other possible things that metric can be (float tuple etc)
+                            if isinstance(metric, dict):
+                                for l, v in metric.items():
+                                    self.comet_experiment.log_metric(l, v)
+                            else:
+                                self.comet_experiment.log_metric(metric_label, metric)
                     self._metric_tracker.add_metric(this_epoch_val_metric)
 
                     if self._metric_tracker.should_stop_early():
@@ -274,59 +282,60 @@ class MyTrainer(Trainer):
             self.model.load_state_dict(best_model_state)
 
         # THISISNEW: writing accuracy by bucket
-        if self._validation_data is not None:
-            with torch.no_grad():
-                if self.dev_acc_by_bucket_file and self.predictor:
-                    bucket_counts = dict()
-                    bucket_correct = dict()
-                    bucket_blanks = dict()
-                    bucket_blanks_correctly_predicted = dict()
-                    bucket_blanks_total_predicted = dict()
-                    for instance in self._validation_data:
-                        logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
-                        for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
-
-                            word = str(word)
-                            # print(word + "("+gold + "): "+prediction)
-                            bucket_id = self.train_lemma_stats.get(word, 0)
-                            bucket_counts[bucket_id] = bucket_counts.get(bucket_id, 0) + 1
-                            if gold == "_":
-                                bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
-
-                            prediction = self.model.vocab.get_token_from_index(np.argmax(np.array(predictions)), 'labels')
-                            if prediction == "_":
-                                # first count as (possibly correct) blank
-                                bucket_blanks_total_predicted[
-                                    bucket_id] = bucket_blanks_total_predicted.get(bucket_id, 0) + 1
-                                if gold == "_":
-                                    bucket_blanks_correctly_predicted[
-                                        bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
-                                # now: want best non-blank(!) prediction
-                                second_best = np.array(predictions).argsort()[-2]
-                                prediction = self.model.vocab.get_token_from_index(second_best, 'labels')
-
-                            if prediction == gold:
-                                #note that since prediction is non-blank, this only applies when neither is blank.
-                                bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
-
-                    bucket_acc = dict()
-                    buckets = list(bucket_counts.keys())
-                    buckets.sort()
-                    for i in buckets:
-                        bucket_acc[i] = bucket_correct.get(i, 0) / (bucket_counts[i] - bucket_blanks.get(i, 0))
-                        self.dev_acc_by_bucket_file.write(str(i)+","+str(bucket_acc[i])+"\n")
-                    self.dev_acc_by_bucket_file.close()
-
-                    if sum(bucket_blanks.values()) > 0:
-                        blanks_recall = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks.values())
-                    else:
-                        blanks_recall = 1
-                    if sum(bucket_blanks_total_predicted.values()) > 0:
-                        blanks_precision = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks_total_predicted.values())
-                    else:
-                        blanks_precision = 1
-                    blanks_f = (2*blanks_recall*blanks_precision)/(blanks_recall+blanks_precision)
-                    print("blanks F/R/P: %.2f/%.2f/%.2f" % (blanks_f, blanks_recall, blanks_precision))
+        # TODO the trainer class does not seem the right place for this. make a logger interface of some sort?
+        # if self._validation_data is not None:
+        #     with torch.no_grad():
+        #         if self.dev_acc_by_bucket_file and self.predictor:
+        #             bucket_counts = dict()
+        #             bucket_correct = dict()
+        #             bucket_blanks = dict()
+        #             bucket_blanks_correctly_predicted = dict()
+        #             bucket_blanks_total_predicted = dict()
+        #             for instance in self._validation_data:
+        #                 logits_sentence = self.predictor.predict_instance(instance)['tag_logits']
+        #                 for word, gold, predictions in zip(instance["sentence"], instance["labels"], logits_sentence):
+        #
+        #                     word = str(word)
+        #                     # print(word + "("+gold + "): "+prediction)
+        #                     bucket_id = self.train_lemma_stats.get(word, 0)
+        #                     bucket_counts[bucket_id] = bucket_counts.get(bucket_id, 0) + 1
+        #                     if gold == "_":
+        #                         bucket_blanks[bucket_id] = bucket_blanks.get(bucket_id, 0) + 1
+        #
+        #                     prediction = self.model.vocab.get_token_from_index(np.argmax(np.array(predictions)), 'labels')
+        #                     if prediction == "_":
+        #                         # first count as (possibly correct) blank
+        #                         bucket_blanks_total_predicted[
+        #                             bucket_id] = bucket_blanks_total_predicted.get(bucket_id, 0) + 1
+        #                         if gold == "_":
+        #                             bucket_blanks_correctly_predicted[
+        #                                 bucket_id] = bucket_blanks_correctly_predicted.get(bucket_id, 0) + 1
+        #                         # now: want best non-blank(!) prediction
+        #                         second_best = np.array(predictions).argsort()[-2]
+        #                         prediction = self.model.vocab.get_token_from_index(second_best, 'labels')
+        #
+        #                     if prediction == gold:
+        #                         #note that since prediction is non-blank, this only applies when neither is blank.
+        #                         bucket_correct[bucket_id] = bucket_correct.get(bucket_id, 0) + 1
+        #
+        #             bucket_acc = dict()
+        #             buckets = list(bucket_counts.keys())
+        #             buckets.sort()
+        #             for i in buckets:
+        #                 bucket_acc[i] = bucket_correct.get(i, 0) / (bucket_counts[i] - bucket_blanks.get(i, 0))
+        #                 self.dev_acc_by_bucket_file.write(str(i)+","+str(bucket_acc[i])+"\n")
+        #             self.dev_acc_by_bucket_file.close()
+        #
+        #             if sum(bucket_blanks.values()) > 0:
+        #                 blanks_recall = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks.values())
+        #             else:
+        #                 blanks_recall = 1
+        #             if sum(bucket_blanks_total_predicted.values()) > 0:
+        #                 blanks_precision = sum(bucket_blanks_correctly_predicted.values())/sum(bucket_blanks_total_predicted.values())
+        #             else:
+        #                 blanks_precision = 1
+        #             blanks_f = (2*blanks_recall*blanks_precision)/(blanks_recall+blanks_precision)
+        #             print("blanks F/R/P: %.2f/%.2f/%.2f" % (blanks_f, blanks_recall, blanks_precision))
 
 
 

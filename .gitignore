@@ -24,3 +24,10 @@ copying/dev_copy_stats_lemmas.csv
 copying/lemma_label_counts.txt
 copying/unseen_words.txt
 copying/word_label_counts.txt
+stats/word_label_counts.txt
+stats/unseen_words.txt
+stats/multinodes.txt
+stats/lemma_label_counts.txt
+stats/dev_copy_stats_words.csv
+stats/dev_copy_stats_lemmas.csv
+stats/dev_copy_stats.csv

@@ -16,6 +16,8 @@ from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 from allennlp.training.metrics import CategoricalAccuracy
 
+from allenCode.f_metric import MultisetFScore
+
 torch.manual_seed(1)
 
 @DatasetReader.register('pos-tutorial')
@@ -49,6 +51,7 @@ class PosDatasetReader(DatasetReader):
                 yield self.text_to_instance([Token(word) for word in sentence], tags)
 
 
+
 @Model.register('lstm-tagger')
 class LstmTagger(Model):
     def __init__(self,
@@ -58,26 +61,49 @@ class LstmTagger(Model):
         super().__init__(vocab)
         self.word_embeddings = word_embeddings
         self.encoder = encoder
-        self.hidden2tag = torch.nn.Linear(in_features=encoder.get_output_dim(),
+        self.hidden2label1 = torch.nn.Linear(in_features=encoder.get_output_dim(),
                                           out_features=vocab.get_vocab_size('labels'))
-        self.accuracy = CategoricalAccuracy()
+        self.hidden2label2 = torch.nn.Linear(in_features=encoder.get_output_dim(),
+                                          out_features=vocab.get_vocab_size('labels'))
+        self.hidden2label3 = torch.nn.Linear(in_features=encoder.get_output_dim(),
+                                          out_features=vocab.get_vocab_size('labels'))
+        self.accuracy1 = CategoricalAccuracy()
+        self.accuracy2 = CategoricalAccuracy()
+        self.accuracy3 = CategoricalAccuracy()
+        self.fscore = MultisetFScore(null_label_id=vocab.get_token_index(token="_", namespace='labels'))
 
 
     def forward(self,
                 sentence: Dict[str, torch.Tensor],
-                labels: torch.Tensor = None) -> Dict[str, torch.Tensor]:
+                labels1: torch.LongTensor = None,
+                labels2: torch.LongTensor = None,
+                labels3: torch.LongTensor = None) -> Dict[str, torch.Tensor]:
         mask = get_text_field_mask(sentence)
         embeddings = self.word_embeddings(sentence)
         encoder_out = self.encoder(embeddings, mask)
-        tag_logits = self.hidden2tag(encoder_out)
-        output = {"tag_logits": tag_logits}
-        if labels is not None:
-            self.accuracy(tag_logits, labels, mask)
-            output["loss"] = sequence_cross_entropy_with_logits(tag_logits, labels, mask)
+        label1_logits = self.hidden2label1(encoder_out)
+        label2_logits = self.hidden2label2(encoder_out)
+        label3_logits = self.hidden2label3(encoder_out)
+        output = {"label1_logits": label1_logits, "label2_logits": label2_logits, "label3_logits": label3_logits}
+        if labels1 is not None and labels2 is not None and labels3 is not None:
+            self.accuracy1(label1_logits, labels1, mask)
+            self.accuracy2(label2_logits, labels2, mask)
+            self.accuracy3(label3_logits, labels3, mask)
+            self.fscore([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
+            output["loss"] = sequence_cross_entropy_with_logits(label1_logits, labels1, mask) +\
+                            sequence_cross_entropy_with_logits(label2_logits, labels2, mask) +\
+                            sequence_cross_entropy_with_logits(label3_logits, labels3, mask)
 
         return output
 
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
-        return {"accuracy": self.accuracy.get_metric(reset)}
+        fdict = self.fscore.get_metric(reset)
+        return {"accuracy1": self.accuracy1.get_metric(reset),
+                "accuracy2": self.accuracy2.get_metric(reset),
+                "accuracy3": self.accuracy3.get_metric(reset),
+                "recall": fdict["recall"],
+                "precision": fdict["precision"],
+                "fscore": fdict["fscore"]}
+
 
