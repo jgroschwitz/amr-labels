@@ -5,6 +5,7 @@ local num_epochs = 30;
 local patience = 30;
 local batch_size = 64;
 local learning_rate = 0.001;
+local bert_model = "bert-large-uncased";
 
 {
     "train_data_path": 'data_formatting/amr17/train/train.amconll',
@@ -14,7 +15,7 @@ local learning_rate = 0.001;
         "token_indexers": {
             "bert": {
                 "type": "bert-pretrained",
-                "pretrained_model": std.extVar("BERT_VOCAB"),
+                "pretrained_model": bert_model,
                 "do_lowercase": false,
                 "use_starting_offsets": true
             }
@@ -31,7 +32,7 @@ local learning_rate = 0.001;
             "token_embedders": {
                 "bert": {
                     "type": "bert-pretrained",
-                    "pretrained_model": std.extVar("BERT_WEIGHTS")
+                    "pretrained_model": bert_model
                 }
             }
         },
