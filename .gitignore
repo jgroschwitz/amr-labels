@@ -31,3 +31,4 @@ stats/lemma_label_counts.txt
 stats/dev_copy_stats_words.csv
 stats/dev_copy_stats_lemmas.csv
 stats/dev_copy_stats.csv
+main.prof

@@ -163,6 +163,7 @@ class MyTrainer(Trainer):
             #                 print()
 
             epoch_start_time = time.time()
+            self.model.set_perform_expensive_eval(False)
             print("Epoch "+str(epoch)+ " training")
             train_metrics = self._train_epoch(epoch)
 
@@ -176,6 +177,7 @@ class MyTrainer(Trainer):
 
             if self._validation_data is not None:
                 print("Validation")
+                self.model.set_perform_expensive_eval(True)
                 with torch.no_grad():
 
                     # THISISNEW: writing to the prediction log here

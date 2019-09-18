@@ -71,7 +71,11 @@ class LstmTagger(Model):
         self.accuracy2 = CategoricalAccuracy()
         self.accuracy3 = CategoricalAccuracy()
         self.fscore = MultisetFScore(null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+        self.perform_expensive_eval = True
 
+
+    def set_perform_expensive_eval(self, do_it:bool):
+        self.perform_expensive_eval = do_it
 
     def forward(self,
                 sentence: Dict[str, torch.Tensor],
@@ -89,7 +93,9 @@ class LstmTagger(Model):
             self.accuracy1(label1_logits, labels1, mask)
             self.accuracy2(label2_logits, labels2, mask)
             self.accuracy3(label3_logits, labels3, mask)
-            self.fscore([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
+            if self.perform_expensive_eval:
+                # otherwise we don't count things for fscore, and it will just be 0.
+                self.fscore([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
             output["loss"] = sequence_cross_entropy_with_logits(label1_logits, labels1, mask) +\
                             sequence_cross_entropy_with_logits(label2_logits, labels2, mask) +\
                             sequence_cross_entropy_with_logits(label3_logits, labels3, mask)
