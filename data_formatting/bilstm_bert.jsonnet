@@ -1,5 +1,5 @@
 // jsonnet allows local variables like this
-local embedding_dim = 256;
+local embedding_dim = 1024; // BERT output dim
 local hidden_dim = 256;
 local num_epochs = 30;
 local patience = 30;
@@ -10,18 +10,28 @@ local learning_rate = 0.001;
     "train_data_path": 'data_formatting/amr17/train/train.amconll',
     "validation_data_path": 'data_formatting/amr17/dev/gold-dev.amconll',
     "dataset_reader": {
-        "type": "amconll-aligned-lex"
+        "type": "amconll-aligned-lex",
+        "token_indexers": {
+            "bert": {
+                "type": "bert-pretrained",
+                "pretrained_model": std.extVar("BERT_VOCAB"),
+                "do_lowercase": false,
+                "use_starting_offsets": true
+            }
+        }
     },
     "model": {
         "type": "lstm-tagger",
         "word_embeddings": {
-            // Technically you could put a "type": "basic" here,
-            // but that's the default TextFieldEmbedder, so doing so
-            // is optional.
+            "allow_unmatched_keys": true,
+            "embedder_to_indexer_map": {
+                "bert": ["bert", "bert-offsets"],
+                "token_characters": ["token_characters"],
+            },
             "token_embedders": {
-                "tokens": {
-                    "type": "embedding",
-                    "embedding_dim": embedding_dim
+                "bert": {
+                    "type": "bert-pretrained",
+                    "pretrained_model": std.extVar("BERT_WEIGHTS")
                 }
             }
         },
