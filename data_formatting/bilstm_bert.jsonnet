@@ -4,7 +4,7 @@ local hidden_dim = 256;
 local num_epochs = 30;
 local patience = 30;
 local batch_size = 256;
-local learning_rate = 0.00025;
+local learning_rate = 0.004;
 local bert_model = "bert-large-uncased";
 
 {
