@@ -3,8 +3,8 @@ local embedding_dim = 1024; // BERT output dim
 local hidden_dim = 256;
 local num_epochs = 30;
 local patience = 30;
-local batch_size = 64;
-local learning_rate = 0.001;
+local batch_size = 256;
+local learning_rate = 0.00025;
 local bert_model = "bert-large-uncased";
 
 {
