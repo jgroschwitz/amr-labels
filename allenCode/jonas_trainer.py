@@ -215,9 +215,9 @@ class MyTrainer(Trainer):
                             # TODO case distinctions for all the other possible things that metric can be (float tuple etc)
                             if isinstance(metric, dict):
                                 for l, v in metric.items():
-                                    self.comet_experiment.log_metric(l, v)
+                                    self.comet_experiment.log_metric(l, v, step=epoch)
                             else:
-                                self.comet_experiment.log_metric(metric_label, metric)
+                                self.comet_experiment.log_metric(metric_label, metric, step=epoch)
                     self._metric_tracker.add_metric(this_epoch_val_metric)
 
                     if self._metric_tracker.should_stop_early():
