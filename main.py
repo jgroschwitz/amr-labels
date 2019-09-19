@@ -1,20 +1,21 @@
 ### author: Jonas Groschwitz
 
-from comet_ml import Experiment
-
 import argparse
 
 import shutil
 import tempfile
 import numpy as np
 
+import torch
 from allennlp.commands.train import train_model
 from allennlp.common.params import Params
 from allennlp.predictors import SentenceTaggerPredictor
-from allenCode.tagger import PosDatasetReader
+import allenCode.tagger
 import allenCode.jonas_trainer # TODO this is just for registering the trainer, find a better way to do that!
 import allenCode.dataset_readers.amconll_aligned_lex   # just to register the reader
 
+
+torch.manual_seed(0)
 
 # In practice you'd probably do this from the command line:
 #   $ allennlp train tutorials/tagger/experiment.jsonnet -s /tmp/serialization_dir --include-package tutorials.tagger.config_allennlp

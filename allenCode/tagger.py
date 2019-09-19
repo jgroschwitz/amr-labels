@@ -4,51 +4,17 @@ from typing import Iterator, List, Dict
 
 import torch
 
-from allennlp.data import Instance
-from allennlp.data.dataset_readers import DatasetReader
-from allennlp.data.fields import TextField, SequenceLabelField
-from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
-from allennlp.data.tokenizers import Token
+from allennlp.common import Params
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models import Model
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 from allennlp.modules.seq2seq_encoders import Seq2SeqEncoder
 from allennlp.nn.util import get_text_field_mask, sequence_cross_entropy_with_logits
 from allennlp.training.metrics import CategoricalAccuracy
+from allennlp.common.checks import ConfigurationError
 
+import allenCode.losses as losses
 from allenCode.f_metric import MultisetFScore
-
-torch.manual_seed(1)
-
-@DatasetReader.register('pos-tutorial')
-class PosDatasetReader(DatasetReader):
-    """
-    DatasetReader for PoS tagging data, one sentence per line, like
-
-        The###DET dog###NN ate###V the###DET apple###NN
-    """
-    def __init__(self, token_indexers: Dict[str, TokenIndexer] = None) -> None:
-        super().__init__(lazy=False)
-        self.token_indexers = token_indexers or {"tokens": SingleIdTokenIndexer()}
-
-
-    def text_to_instance(self, tokens: List[Token], tags: List[str] = None) -> Instance:
-        sentence_field = TextField(tokens, self.token_indexers)
-        fields = {"sentence": sentence_field}
-
-        if tags:
-            label_field = SequenceLabelField(labels=tags, sequence_field=sentence_field)
-            fields["labels"] = label_field
-
-        return Instance(fields)
-
-
-    def _read(self, file_path: str) -> Iterator[Instance]:
-        with open(file_path) as f:
-            for line in f:
-                pairs = line.strip().split()
-                sentence, tags = zip(*(pair.split("###") for pair in pairs))
-                yield self.text_to_instance([Token(word) for word in sentence], tags)
 
 
 
@@ -57,7 +23,9 @@ class LstmTagger(Model):
     def __init__(self,
                  word_embeddings: TextFieldEmbedder,
                  encoder: Seq2SeqEncoder,
-                 vocab: Vocabulary) -> None:
+                 vocab: Vocabulary,
+                 loss) -> None:
+        """ loss takes a list of 3 logit tensors, list of 3 gold tensors and a maks tensor to compute a loss."""
         super().__init__(vocab)
         self.word_embeddings = word_embeddings
         self.encoder = encoder
@@ -72,6 +40,7 @@ class LstmTagger(Model):
         self.accuracy3 = CategoricalAccuracy()
         self.fscore = MultisetFScore(null_label_id=vocab.get_token_index(token="_", namespace='labels'))
         self.perform_expensive_eval = True
+        self.loss = loss
 
 
     def set_perform_expensive_eval(self, do_it:bool):
@@ -96,9 +65,7 @@ class LstmTagger(Model):
             if self.perform_expensive_eval:
                 # otherwise we don't count things for fscore, and it will just be 0.
                 self.fscore([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
-            output["loss"] = sequence_cross_entropy_with_logits(label1_logits, labels1, mask) +\
-                            sequence_cross_entropy_with_logits(label2_logits, labels2, mask) +\
-                            sequence_cross_entropy_with_logits(label3_logits, labels3, mask)
+            output["loss"] = self.loss([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
 
         return output
 
@@ -111,5 +78,31 @@ class LstmTagger(Model):
                 "recall": fdict["recall"],
                 "precision": fdict["precision"],
                 "fscore": fdict["fscore"]}
+
+
+    @classmethod
+    def from_params(cls, params: Params, vocab: Vocabulary):
+        word_embeddings = TextFieldEmbedder.from_params(params.pop("word_embeddings"), vocab=vocab)
+        encoder = Seq2SeqEncoder.from_params(params.pop("encoder"))
+        #vocab = extras["vocab"]
+        loss_str = params.pop("loss", "supervised")
+
+        if loss_str == "supervised":
+            loss = lambda logits, gold, mask: losses.supervised_loss(logits, gold, mask)
+        elif loss_str == "reinforce":
+            loss = lambda logits, gold, mask: losses.reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+        elif loss_str == "reinforce_with_baseline":
+            loss = lambda logits, gold, mask: losses.reinforce_with_baseline(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+        elif loss_str == "restricted_reinforce":
+            loss = lambda logits, gold, mask: losses.restricted_reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+        elif loss_str == "force_correct":
+            loss = lambda logits, gold, mask: losses.force_correct(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+        else:
+            raise ConfigurationError("Unrecognized loss "+loss_str)
+
+        return LstmTagger(word_embeddings=word_embeddings,
+                          encoder=encoder,
+                          vocab=vocab,
+                          loss = loss)
 
 

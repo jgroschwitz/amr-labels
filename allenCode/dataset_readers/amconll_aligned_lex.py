@@ -94,6 +94,8 @@ class AMAlignedLexReader(DatasetReader):
         fields["labels3"] = SequenceLabelField(labels3, tokens,
                                                    label_namespace="labels")  # the 'labels' namespace is actually the default
 
+
+
         # print([str(t) for t in tokens])
         # print([str(f) for f in fields["labels"]])
         return Instance(fields)

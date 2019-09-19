@@ -372,7 +372,7 @@ class MyTrainer(Trainer):
                     validation_iterator: DataIterator = None) -> 'Trainer':
         # pylint: disable=arguments-differ
         patience = params.pop_int("patience", None)
-        validation_metric = params.pop("validation_metric", "+accuracy")
+        validation_metric = params.pop("validation_metric", "+loss")
         shuffle = params.pop_bool("shuffle", True)
         num_epochs = params.pop_int("num_epochs", 20)
         cuda_device = parse_cuda_device(params.pop("cuda_device", -1))

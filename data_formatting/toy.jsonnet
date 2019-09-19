@@ -1,8 +1,8 @@
 // jsonnet allows local variables like this
 local embedding_dim = 16;
 local hidden_dim = 16;
-local num_epochs = 40;
-local patience = 40;
+local num_epochs = 300;
+local patience = 10000;
 local batch_size = 2;
 local learning_rate = 0.1;
 
@@ -29,7 +29,8 @@ local learning_rate = 0.1;
             "type": "lstm",
             "input_size": embedding_dim,
             "hidden_size": hidden_dim
-        }
+        },
+        "loss": "force_correct"
     },
     "iterator": {
         "type": "bucket",
