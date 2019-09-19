@@ -15,7 +15,7 @@ def supervised_loss(logits: List[Tensor], gold: List[Tensor], mask):
                             sequence_cross_entropy_with_logits(label3_logits, labels3, mask)
 
 
-def reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id):
+def reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
     # logits are of shape batch_size x sent_length x num_categories
     label1_logits, label2_logits, label3_logits = logits
     np_logits = [F.softmax(l, dim=2).detach().cpu().numpy() for l in logits]
@@ -55,17 +55,17 @@ def reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id):
                 samples[1][k].append(0)
                 samples[2][k].append(0)
         rewards.append(fscore(sample_counts, gold_counts))
-    rewards = torch.tensor(rewards, requires_grad=False)
+    rewards = torch.tensor(rewards, requires_grad=False, device=device)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
-    return sequence_cross_entropy_with_logits(label1_logits, torch.tensor(samples[0], dtype=torch.long, requires_grad=False), mask_with_reward) +\
-                            sequence_cross_entropy_with_logits(label2_logits, torch.tensor(samples[1], dtype=torch.long, requires_grad=False), mask_with_reward) +\
-                            sequence_cross_entropy_with_logits(label3_logits, torch.tensor(samples[2], dtype=torch.long, requires_grad=False), mask_with_reward)
+    return sequence_cross_entropy_with_logits(label1_logits, torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device), mask_with_reward) +\
+                            sequence_cross_entropy_with_logits(label2_logits, torch.tensor(samples[1], dtype=torch.long, requires_grad=False, device=device), mask_with_reward) +\
+                            sequence_cross_entropy_with_logits(label3_logits, torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device), mask_with_reward)
 
 
 
 
 
-def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null_label_id):
+def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
     # logits are of shape batch_size x sent_length x num_categories
     label1_logits, label2_logits, label3_logits = logits
     np_logits = [F.softmax(l/5.0, dim=2).detach().cpu().numpy() for l in logits]
@@ -119,21 +119,21 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
                 samples[1][k].append(0)
                 samples[2][k].append(0)
         rewards.append(fscore(sample_counts, gold_counts) - fscore(best_counts, gold_counts)) # subtract baseline here
-    rewards = torch.tensor(rewards, requires_grad=False)
+    rewards = torch.tensor(rewards, requires_grad=False, device=device)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
     return sequence_cross_entropy_with_logits(label1_logits,
-                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label2_logits,
-                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label3_logits,
-                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward)
 
 
 
-def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id):
+def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
     # logits are of shape batch_size x sent_length x num_categories
     label1_logits, label2_logits, label3_logits = logits
     batch_size, sent_length, num_cats = label1_logits.size()
@@ -192,21 +192,21 @@ def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_la
                 samples[2][k].append(0)
         rewards.append(fscore(sample_counts, gold_counts[k]))
 
-    rewards = torch.tensor(rewards, requires_grad=False)
+    rewards = torch.tensor(rewards, requires_grad=False, device=device)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
     return sequence_cross_entropy_with_logits(label1_logits,
-                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label2_logits,
-                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label3_logits,
-                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward)
 
 
 
-def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id):
+def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
     # logits are of shape batch_size x sent_length x num_categories
     label1_logits, label2_logits, label3_logits = logits
     batch_size, sent_length, num_cats = label1_logits.size()
@@ -264,13 +264,13 @@ def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id)
                 samples[2][k].append(0)
 
     return sequence_cross_entropy_with_logits(label1_logits,
-                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device),
                                               mask) + \
            sequence_cross_entropy_with_logits(label2_logits,
-                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[1], dtype=torch.long, requires_grad=False, device=device),
                                               mask) + \
            sequence_cross_entropy_with_logits(label3_logits,
-                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False),
+                                              torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask)
 
 

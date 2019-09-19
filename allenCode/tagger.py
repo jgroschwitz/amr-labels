@@ -58,6 +58,7 @@ class LstmTagger(Model):
         label2_logits = self.hidden2label2(encoder_out)
         label3_logits = self.hidden2label3(encoder_out)
         output = {"label1_logits": label1_logits, "label2_logits": label2_logits, "label3_logits": label3_logits}
+
         if labels1 is not None and labels2 is not None and labels3 is not None:
             self.accuracy1(label1_logits, labels1, mask)
             self.accuracy2(label2_logits, labels2, mask)
@@ -65,7 +66,8 @@ class LstmTagger(Model):
             if self.perform_expensive_eval:
                 # otherwise we don't count things for fscore, and it will just be 0.
                 self.fscore([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
-            output["loss"] = self.loss([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask)
+            device = next(self.parameters()).device # slightly hacky, but https://github.com/pytorch/pytorch/issues/7460 recommends it
+            output["loss"] = self.loss([label1_logits, label2_logits, label3_logits], [labels1, labels2, labels3], mask, device)
 
         return output
 
@@ -88,15 +90,15 @@ class LstmTagger(Model):
         loss_str = params.pop("loss", "supervised")
 
         if loss_str == "supervised":
-            loss = lambda logits, gold, mask: losses.supervised_loss(logits, gold, mask)
+            loss = lambda logits, gold, mask, device: losses.supervised_loss(logits, gold, mask)
         elif loss_str == "reinforce":
-            loss = lambda logits, gold, mask: losses.reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+            loss = lambda logits, gold, mask, device: losses.reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         elif loss_str == "reinforce_with_baseline":
-            loss = lambda logits, gold, mask: losses.reinforce_with_baseline(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+            loss = lambda logits, gold, mask, device: losses.reinforce_with_baseline(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         elif loss_str == "restricted_reinforce":
-            loss = lambda logits, gold, mask: losses.restricted_reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+            loss = lambda logits, gold, mask, device: losses.restricted_reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         elif loss_str == "force_correct":
-            loss = lambda logits, gold, mask: losses.force_correct(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'))
+            loss = lambda logits, gold, mask, device: losses.force_correct(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         else:
             raise ConfigurationError("Unrecognized loss "+loss_str)
 
