@@ -191,7 +191,7 @@ def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_la
                 samples[1][k].append(0)
                 samples[2][k].append(0)
         rewards.append(fscore(sample_counts, gold_counts[k]))
-    
+
     rewards = torch.tensor(rewards, requires_grad=False)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
     return sequence_cross_entropy_with_logits(label1_logits,

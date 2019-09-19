@@ -45,7 +45,7 @@ local bert_model = "bert-large-uncased";
             "use_highway": false,
             "hidden_size": hidden_dim,
         },
-        "loss": "reinforce"
+        "loss": "restricted_reinforce"
     },
     "iterator": {
         "type": "bucket",

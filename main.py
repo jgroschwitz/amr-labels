@@ -1,5 +1,7 @@
 ### author: Jonas Groschwitz
 
+import comet_ml # must import this before a bunch of the others, so I'll just do it first
+
 import argparse
 
 import shutil
