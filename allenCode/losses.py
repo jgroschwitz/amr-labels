@@ -172,12 +172,9 @@ def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_la
                 # set all invalid predictions to 0, leave rest unchanged
                 for l in range(3):
                     np_logits[l][k][i] = np.multiply(np_logits[l][k][i], valid_predictions)
-
                     # renormalize
                     np_sum = np.sum(np_logits[l][k][i])
-                    for j in valid_predictions:
-                        # not sure if multiplying whole vector would be faster (valid_predictions is much smaller than num_cats)
-                        np_logits[l][k][i][j] = np_logits[l][k][i][j] / np_sum
+                    np_logits[l][k][i] = np_logits[l][k][i] / np_sum
 
                 # now we actually sample. Predictions for secondary/tertiary labels may only be non-null if the
                 # previous prediction (primary/secondary respectively) was not null.
@@ -243,19 +240,23 @@ def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id,
             samples[l].append([])
         sample_counts = dict()
         for i in range(sent_length):
-            for l in range(3):
-                for j in range(num_cats):
-                    if gold_counts[k].get(j, 0) - sample_counts.get(j, 0) <= 0 and not j == null_label_id:
-                        np_logits[l][k][i][j] = 0
+            if mask[k][i].item() > 0:
+                valid_predictions = np.zeros(num_cats)
+                for j in gold_counts[k].keys():
+                    if gold_counts[k].get(j, 0) - sample_counts.get(j, 0) > 0:
+                        valid_predictions[j] = 1.0
                 gold_remaining = sum(gold_counts[k].values()) - sum(sample_counts.values())
                 predictions_remaining = 3 * (sent_length-(i+1)) # predictions remaining after this word
-                if gold_remaining > 0 and predictions_remaining - gold_remaining <= 0:
-                    np_logits[l][k][i][null_label_id] = 0
-                np_sum = np.sum(np_logits[l][k][i])
-                for j in gold_counts[k].keys():
-                    np_logits[l][k][i][j] = np_logits[l][k][i][j] / np_sum
-                np_logits[l][k][i][null_label_id] = np_logits[l][k][i][null_label_id] / np_sum
-            if mask[k][i].item() > 0:
+                if gold_remaining <= 0 or predictions_remaining - gold_remaining > 0:
+                    valid_predictions[null_label_id] = 1.0
+                # set all invalid predictions to 0, leave rest unchanged
+                for l in range(3):
+                    np_logits[l][k][i] = np.multiply(np_logits[l][k][i], valid_predictions)
+                    # renormalize
+                    np_sum = np.sum(np_logits[l][k][i])
+                    np_logits[l][k][i] = np_logits[l][k][i] / np_sum
+
+                # now we sample
                 sample1 = sample(np_logits[0], k, i)
                 if sample1 == null_label_id:
                     sample2 = null_label_id
@@ -265,10 +266,11 @@ def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id,
                     sample3 = null_label_id
                 else:
                     sample3 = sample(np_logits[2], k, i)
+
+                # store samples
                 samples[0][k].append(sample1)
                 samples[1][k].append(sample2)
                 samples[2][k].append(sample3)
-
                 add_count(sample_counts, sample1, null_label_id)
                 add_count(sample_counts, sample2, null_label_id)
                 add_count(sample_counts, sample3, null_label_id)
@@ -286,6 +288,29 @@ def force_correct(logits: List[Tensor], gold: List[Tensor], mask, null_label_id,
            sequence_cross_entropy_with_logits(label3_logits,
                                               torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask)
+
+
+
+# def label_mse(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
+#     # logits are of shape batch_size x sent_length x num_categories
+#     label1_logits, label2_logits, label3_logits = logits
+#     batch_size, sent_length, num_cats = label1_logits.size()
+#     np_logits = [F.softmax(l, dim=2).detach().cpu().numpy() for l in logits]
+#     # golds and mask are of shape batch_size x sent_length
+#     gold1, gold2, gold3 = gold
+#     # collect gold counts a bit earlier here
+#     gold_counts = []
+#     for k in range(batch_size):
+#         gold_counts.append(dict())
+#         for i in range(sent_length):
+#             add_count(gold_counts[k], gold1[k][i].item(), null_label_id)
+#             add_count(gold_counts[k], gold2[k][i].item(), null_label_id)
+#             add_count(gold_counts[k], gold3[k][i].item(), null_label_id)
+#
+#     for k in range(batch_size):
+
+
+
 
 
 
