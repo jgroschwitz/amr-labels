@@ -97,6 +97,11 @@ class LstmTagger(Model):
             loss = lambda logits, gold, mask, device: losses.reinforce_with_baseline(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         elif loss_str == "restricted_reinforce":
             loss = lambda logits, gold, mask, device: losses.restricted_reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
+        elif loss_str == "restricted_reinforce2":
+            loss = lambda logits, gold, mask, device: losses.restricted_reinforce2(logits, gold, mask,
+                                                                                  null_label_id=vocab.get_token_index(
+                                                                                      token="_", namespace='labels'),
+                                                                                  device=device)
         elif loss_str == "force_correct":
             loss = lambda logits, gold, mask, device: losses.force_correct(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         else:

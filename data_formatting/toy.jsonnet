@@ -30,7 +30,7 @@ local learning_rate = 0.1;
             "input_size": embedding_dim,
             "hidden_size": hidden_dim
         },
-        "loss": "force_correct"
+        "loss": "restricted_reinforce2"
     },
     "iterator": {
         "type": "bucket",
