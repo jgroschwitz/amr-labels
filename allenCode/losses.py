@@ -153,22 +153,34 @@ def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_la
     rewards = []
     samples = [[], [], []]
     for k in range(batch_size):
-        valid_predictions = set()
+        # set up the vector of valid predictions (0.0 except for labels in gold set plus the null prediction "_",
+        # where it is 1.0) we use this vector to multiply our probabilites later, so we sample only from valid predictions
+        valid_predictions = np.zeros(num_cats)
         for j in gold_counts[k].keys():
-            valid_predictions.add(j)
-        valid_predictions.add(null_label_id)
+            valid_predictions[j] = 1.0
+        valid_predictions[null_label_id] = 1.0
+
+        # set up our storage for the samples we make
         for l in range(3):
             samples[l].append([])
         sample_counts = dict()
+
         for i in range(sent_length):
-            for l in range(3):
-                for j in range(num_cats):
-                    if not j in valid_predictions:
-                        np_logits[l][k][i][j] = 0
-                np_sum = np.sum(np_logits[l][k][i])
-                for j in valid_predictions:
-                    np_logits[l][k][i][j] = np_logits[l][k][i][j] / np_sum
+            # we only need to do all this stuff if the word is not just buffer
             if mask[k][i].item() > 0:
+
+                # set all invalid predictions to 0, leave rest unchanged
+                for l in range(3):
+                    np_logits[l][k][i] = np.multiply(np_logits[l][k][i], valid_predictions)
+
+                    # renormalize
+                    np_sum = np.sum(np_logits[l][k][i])
+                    for j in valid_predictions:
+                        # not sure if multiplying whole vector would be faster (valid_predictions is much smaller than num_cats)
+                        np_logits[l][k][i][j] = np_logits[l][k][i][j] / np_sum
+
+                # now we actually sample. Predictions for secondary/tertiary labels may only be non-null if the
+                # previous prediction (primary/secondary respectively) was not null.
                 sample1 = sample(np_logits[0], k, i)
                 if sample1 == null_label_id:
                     sample2 = null_label_id
@@ -178,15 +190,17 @@ def restricted_reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_la
                     sample3 = null_label_id
                 else:
                     sample3 = sample(np_logits[2], k, i)
+
+                # store our samples
                 samples[0][k].append(sample1)
                 samples[1][k].append(sample2)
                 samples[2][k].append(sample3)
-
-
                 add_count(sample_counts, sample1, null_label_id)
                 add_count(sample_counts, sample2, null_label_id)
                 add_count(sample_counts, sample3, null_label_id)
+
             else:
+                # just buffer the samples to full length
                 samples[0][k].append(0)
                 samples[1][k].append(0)
                 samples[2][k].append(0)
