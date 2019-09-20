@@ -102,7 +102,7 @@ class LstmTagger(Model):
                                                                                   null_label_id=vocab.get_token_index(
                                                                                       token="_", namespace='labels'),
                                                                                   device=device)
-        elif loss_str == "mixed":
+        elif loss_str == "mix":
             loss = lambda logits, gold, mask, device: loss_mixer.mix(logits, gold, mask,
                                                                                   null_label_id=vocab.get_token_index(
                                                                                       token="_", namespace='labels'),
