@@ -15,7 +15,7 @@ from allennlp.common.checks import ConfigurationError
 
 import allenCode.losses as losses
 from allenCode.f_metric import MultisetFScore
-
+import allenCode.loss_mixer as loss_mixer
 
 
 @Model.register('lstm-tagger')
@@ -99,6 +99,11 @@ class LstmTagger(Model):
             loss = lambda logits, gold, mask, device: losses.restricted_reinforce(logits, gold, mask, null_label_id=vocab.get_token_index(token="_", namespace='labels'), device=device)
         elif loss_str == "restricted_reinforce2":
             loss = lambda logits, gold, mask, device: losses.restricted_reinforce2(logits, gold, mask,
+                                                                                  null_label_id=vocab.get_token_index(
+                                                                                      token="_", namespace='labels'),
+                                                                                  device=device)
+        elif loss_str == "mixed":
+            loss = lambda logits, gold, mask, device: loss_mixer.mix(logits, gold, mask,
                                                                                   null_label_id=vocab.get_token_index(
                                                                                       token="_", namespace='labels'),
                                                                                   device=device)

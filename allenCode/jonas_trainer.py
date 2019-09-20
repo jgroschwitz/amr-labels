@@ -12,8 +12,6 @@ import torch
 import torch.optim.lr_scheduler
 
 
-# THISISNEW
-from copying.copying import get_lemma_to_label_stats
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError, parse_cuda_device
@@ -32,6 +30,10 @@ from allennlp.training.trainer_base import TrainerBase
 from allennlp.training.trainer import Trainer, TrainerPieces
 from allennlp.training import util as training_util
 from allennlp.training.moving_average import MovingAverage
+
+# THISISNEW
+from allenCode.loss_mixer import LossMixer
+from copying.copying import get_lemma_to_label_stats
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -146,6 +148,7 @@ class MyTrainer(Trainer):
             metrics["best_validation_" + key] = value
 
         for epoch in range(epoch_counter, self._num_epochs):
+            LossMixer.epoch = epoch # maybe a bit hacky to get the epoch to the loss like this
 
             # if self._validation_data is not None:
             #     with torch.no_grad():
