@@ -33,7 +33,8 @@ local learning_rate = 0.001;
             "input_size": embedding_dim,
             "use_highway": false,
             "hidden_size": hidden_dim,
-        }
+        },
+        "loss": "reinforce_with_baseline"
     },
     "iterator": {
         "type": "bucket",

@@ -68,7 +68,7 @@ def reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, dev
 def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, device):
     # logits are of shape batch_size x sent_length x num_categories
     label1_logits, label2_logits, label3_logits = logits
-    np_logits = [F.softmax(l/5.0, dim=2).detach().cpu().numpy() for l in logits]
+    np_probs = [F.softmax(l/5.0, dim=2).detach().cpu().numpy() for l in logits]
     # golds and mask are of shape batch_size x sent_length
     gold1, gold2, gold3 = gold
     batch_size, sent_length, num_cats = label1_logits.size()
@@ -82,28 +82,28 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
         best_counts = dict()
         for i in range(sent_length):
             if mask[k][i].item() > 0:
-                sample1 = sample(np_logits[0], k, i)
+                sample1 = sample(np_probs[0], k, i)
                 if sample1 == null_label_id:
                     sample2 = null_label_id
                 else:
-                    sample2 = sample(np_logits[1], k, i)
+                    sample2 = sample(np_probs[1], k, i)
                 if sample2 == null_label_id:
                     sample3 = null_label_id
                 else:
-                    sample3 = sample(np_logits[2], k, i)
+                    sample3 = sample(np_probs[2], k, i)
                 samples[0][k].append(sample1)
                 samples[1][k].append(sample2)
                 samples[2][k].append(sample3)
 
-                best1 = best(np_logits[0], k, i)
+                best1 = best(np_probs[0], k, i)
                 if best1 == null_label_id:
                     best2 = null_label_id
                 else:
-                    best2 = best(np_logits[1], k, i)
+                    best2 = best(np_probs[1], k, i)
                 if best2 == null_label_id:
                     best3 = null_label_id
                 else:
-                    best3 = best(np_logits[2], k, i)
+                    best3 = best(np_probs[2], k, i)
 
                 add_count(sample_counts, sample1, null_label_id)
                 add_count(sample_counts, sample2, null_label_id)
@@ -121,7 +121,9 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
         rewards.append(fscore(sample_counts, gold_counts) - fscore(best_counts, gold_counts)) # subtract baseline here
     rewards = torch.tensor(rewards, requires_grad=False, device=device)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
-    return sequence_cross_entropy_with_logits(label1_logits,
+    # print(mask_with_reward)
+
+    loss = sequence_cross_entropy_with_logits(label1_logits,
                                               torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label2_logits,
@@ -130,6 +132,24 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
            sequence_cross_entropy_with_logits(label3_logits,
                                               torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward)
+    if loss.item() > 1000:
+        for k in range(batch_size):
+            for i in range(sent_length):
+                print(k)
+                print(i)
+                # print(mask_with_reward.size())
+                if mask_with_reward[k][i] > 1e-12:
+                    print(label1_logits[k][i][samples[0][k][i]])
+                    print(np_probs[0][k][i][samples[0][k][i]])
+        print(loss.item())
+        print(mask_with_reward)
+        print(samples[0])
+        print(samples[1])
+        print(samples[2])
+        quit(code=1)
+
+    return loss
+
 
 
 
@@ -429,7 +449,8 @@ def fscore(predicted: Dict[int, int], gold: Dict[int, int]):
     else:
         precision = 0.0
     if recall > 1e-12 or precision > 1e-12:
-        return 2*recall*precision / (recall + precision)
+        f = 2*recall*precision / (recall + precision)
+        return f
     else:
         return 0.0
 
