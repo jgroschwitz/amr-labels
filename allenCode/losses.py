@@ -1,4 +1,4 @@
-from allennlp.nn.util import sequence_cross_entropy_with_logits
+from allenCode.custom_util import sequence_cross_entropy_with_logits
 from typing import List, Dict
 from torch import Tensor
 import torch
@@ -23,7 +23,7 @@ def reinforce(logits: List[Tensor], gold: List[Tensor], mask, null_label_id, dev
     gold1, gold2, gold3 = gold
     batch_size, sent_length, num_cats = label1_logits.size()
     rewards = []
-    samples = [[],[],[]]
+    samples = [[], [], []]
     for k in range(batch_size):
         for l in range(3):
             samples[l].append([])
