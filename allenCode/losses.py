@@ -362,6 +362,7 @@ def restricted_reinforce2(logits: List[Tensor], gold: List[Tensor], mask, null_l
                 samples[2][k].append(0)
 
             # adding all probabilities of valid predictions to the loss
+            # TODO make this the log loss
             for l in range(3):
                 for j in gold_counts[k].keys():
                     loss += 1.0 * probs[l][k][i][j]
@@ -371,7 +372,8 @@ def restricted_reinforce2(logits: List[Tensor], gold: List[Tensor], mask, null_l
 
     rewards = torch.tensor(rewards, requires_grad=False, device=device)
     mask_with_reward = torch.mul(mask.float(), rewards.view([batch_size, 1]))
-    return sequence_cross_entropy_with_logits(label1_logits,
+    # TODO change the below to take the cross entropy with logits loss only wrt valid predictions
+    return loss + sequence_cross_entropy_with_logits(label1_logits,
                                               torch.tensor(samples[0], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward) + \
            sequence_cross_entropy_with_logits(label2_logits,
