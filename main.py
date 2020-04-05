@@ -49,7 +49,6 @@ if __name__ == "__main__":
     else:
         params.get("trainer").__setitem__("comet_experiment_name", args.experiment_name)
 
-
     model = train_model(params, serialization_dir)
 
     # Make predictions

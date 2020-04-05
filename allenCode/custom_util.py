@@ -145,9 +145,15 @@ def sequence_cross_entropy_with_logits(
         num_non_empty_sequences = (weights_batch_sum > 0).sum() + tiny_value_of_dtype(
             negative_log_likelihood.dtype
         )
-        return per_batch_loss.sum() / num_non_empty_sequences
+        ret = per_batch_loss.sum() / num_non_empty_sequences
+        if ret > 1000:
+            print("negative_log_likelihood.sum(non_batch_dims):"+str(negative_log_likelihood.sum(non_batch_dims)))
+            print("weights_batch_sum:"+str(weights_batch_sum))
+            print("per_batch_loss:"+str(per_batch_loss))
+            print("num_non_empty_sequences:"+str(num_non_empty_sequences))
+            print("ret:"+str(ret))
     elif average == "token":
-        return negative_log_likelihood.sum() / (
+        ret = negative_log_likelihood.sum() / (
             weights_batch_sum.sum() + tiny_value_of_dtype(negative_log_likelihood.dtype)
         )
     else:
@@ -155,7 +161,8 @@ def sequence_cross_entropy_with_logits(
         per_batch_loss = negative_log_likelihood.sum(non_batch_dims) / (
             weights_batch_sum + tiny_value_of_dtype(negative_log_likelihood.dtype)
         )
-        return per_batch_loss
+        ret = per_batch_loss
+    return ret
 
 
 def tiny_value_of_dtype(dtype: torch.dtype):

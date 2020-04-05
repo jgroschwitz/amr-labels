@@ -135,17 +135,21 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
     if loss.item() > 1000:
         for k in range(batch_size):
             for i in range(sent_length):
-                print(k)
-                print(i)
+                print("k:"+str(k))
+                print("i:"+str(i))
                 # print(mask_with_reward.size())
-                if mask_with_reward[k][i] > 1e-12:
-                    print(label1_logits[k][i][samples[0][k][i]])
-                    print(np_probs[0][k][i][samples[0][k][i]])
-        print(loss.item())
-        print(mask_with_reward)
-        print(samples[0])
-        print(samples[1])
-        print(samples[2])
+                # if mask_with_reward[k][i] > 1e-12:
+                print("logits0:"+str(label1_logits[k][i][samples[0][k][i]]))
+                print("probs0:"+str(np_probs[0][k][i][samples[0][k][i]]))
+                print("logits1:"+str(label2_logits[k][i][samples[1][k][i]]))
+                print("probs1:"+str(np_probs[1][k][i][samples[1][k][i]]))
+                print("logits2:"+str(label3_logits[k][i][samples[2][k][i]]))
+                print("probs2:"+str(np_probs[2][k][i][samples[2][k][i]]))
+        print("loss:"+str(loss.item()))
+        print("mask:"+str(mask_with_reward))
+        print("samples 0:"+str(samples[0]))
+        print("samples 1:"+str(samples[1]))
+        print("samples 2:"+str(samples[2]))
         quit(code=1)
 
     return loss
