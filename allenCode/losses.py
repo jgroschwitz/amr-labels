@@ -132,7 +132,7 @@ def reinforce_with_baseline(logits: List[Tensor], gold: List[Tensor], mask, null
            sequence_cross_entropy_with_logits(label3_logits,
                                               torch.tensor(samples[2], dtype=torch.long, requires_grad=False, device=device),
                                               mask_with_reward)
-    if loss.item() > 1000:
+    if loss.isnan().any() or loss.item() > 1000:
         for k in range(batch_size):
             for i in range(sent_length):
                 print("k:"+str(k))

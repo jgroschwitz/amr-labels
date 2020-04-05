@@ -146,7 +146,7 @@ def sequence_cross_entropy_with_logits(
             negative_log_likelihood.dtype
         )
         ret = per_batch_loss.sum() / num_non_empty_sequences
-        if ret > 1000:
+        if ret.isnan().any() or ret > 1000:
             print("negative_log_likelihood.sum(non_batch_dims):"+str(negative_log_likelihood.sum(non_batch_dims)))
             print("weights_batch_sum:"+str(weights_batch_sum))
             print("per_batch_loss:"+str(per_batch_loss))
