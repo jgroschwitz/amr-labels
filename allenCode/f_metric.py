@@ -35,6 +35,8 @@ class MultisetFScore(Metric):
         mask: ``torch.Tensor``, optional (default = None).
             A masking tensor the same size as the tensors in ``gold_labels``.
         """
+        print("metric called")
+
         # remove from GPU and remove gradient
         predictions = [next(self.unwrap_to_tensors(p)) for p in predictions]
         gold_labels = [next(self.unwrap_to_tensors(g)) for g in gold_labels]
@@ -76,12 +78,15 @@ class MultisetFScore(Metric):
                             pred_here = pred_here.item()
                             gold_here = g[k][i].item()
                             if not pred_here == self.null_label_id:
+                                print("counting prediction")
                                 prediction_counts[pred_here] = prediction_counts.get(pred_here, 0) + 1
                             if not gold_here == self.null_label_id:
+                                print("counting gold")
                                 gold_counts[gold_here] = gold_counts.get(gold_here, 0) + 1
             self.total_predicted += sum(prediction_counts.values())
             self.total_gold += sum(gold_counts.values())
             for label in gold_counts.keys():
+                print("counting correct")
                 self.correct_count += min(gold_counts.get(label, 0), prediction_counts.get(label, 0))
 
 
@@ -105,6 +110,9 @@ class MultisetFScore(Metric):
             f = 0.0
         if reset:
             self.reset()
+        print("metric:f"+str(f))
+        print("metric:r"+str(recall))
+        print("metric:p"+str(precision))
         return {"fscore": f, "recall": recall, "precision": precision}
 
     @overrides
