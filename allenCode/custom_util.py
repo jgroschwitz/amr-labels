@@ -140,11 +140,9 @@ def sequence_cross_entropy_with_logits(
     if average == "batch":
         # shape : (batch_size,)
         per_batch_loss = negative_log_likelihood.sum(non_batch_dims) / (
-            weights_batch_sum + tiny_value_of_dtype(negative_log_likelihood.dtype)
-        )
-        num_non_empty_sequences = (weights_batch_sum > 0).sum().float() + tiny_value_of_dtype(
-            negative_log_likelihood.dtype
-        )
+            weights_batch_sum + tiny_value_of_dtype(negative_log_likelihood.dtype))
+        num_non_empty_sequences = ((weights_batch_sum > 1e-13)+(weights_batch_sum < -1e-13)).sum().float()\
+            + tiny_value_of_dtype(negative_log_likelihood.dtype)
         ret = per_batch_loss.sum() / num_non_empty_sequences
         if torch.isnan(ret).any() or ret > 1000:
             print("negative_log_likelihood.sum(non_batch_dims):"+str(negative_log_likelihood.sum(non_batch_dims)))
