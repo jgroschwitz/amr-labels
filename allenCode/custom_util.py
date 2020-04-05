@@ -142,7 +142,7 @@ def sequence_cross_entropy_with_logits(
         per_batch_loss = negative_log_likelihood.sum(non_batch_dims) / (
             weights_batch_sum + tiny_value_of_dtype(negative_log_likelihood.dtype)
         )
-        num_non_empty_sequences = (weights_batch_sum > 0).sum().double() + tiny_value_of_dtype(
+        num_non_empty_sequences = (weights_batch_sum > 0).sum().float() + tiny_value_of_dtype(
             negative_log_likelihood.dtype
         )
         ret = per_batch_loss.sum() / num_non_empty_sequences
