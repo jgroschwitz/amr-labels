@@ -23,6 +23,8 @@ class MultisetFScore(Metric):
                  gold_labels: List[torch.Tensor],
                  mask: Optional[torch.Tensor] = None):
         """
+        Updates internal counts for a batch.
+        
         Parameters
         ----------
         predictions : ``torch.Tensor``, required.
@@ -67,31 +69,43 @@ class MultisetFScore(Metric):
                 raise ConfigurationError("A gold label passed to MultisetFScore contains an id >= {}, "
                                          "the number of classes.".format(num_classes))
 
+        # here is the actual computation of the scores
+        # we want to find out 
         for k in range(batch_size):
-            prediction_counts = dict()
-            gold_counts = dict()
-            for p, g in zip(predictions, gold_labels):
-                for i in range(sent_length):
+            # here we count for each label how often it occurs in the predicted sequence and in the gold sequence
+            prediction_counts = dict()  # maps each label to how often it occurs in the prediction
+            gold_counts = dict()  # maps each label to how often it occurs in the gold
+            for p, g in zip(predictions, gold_labels):  # this iterates over the different types/layers of labels. If we had a single sequence of labels predicted, this would not be here.
+                for i in range(sent_length):  # iterate over the sequence length
                     if mask is None or mask[k][i] > 1e-12:
+                            # get the predicted label at position i
                             _, pred_here = p[k][i].max(0)
                             pred_here = pred_here.item()
+                            # get the gold label at position i
                             gold_here = g[k][i].item()
+                            # increase the counts by 1
                             if not pred_here == self.null_label_id:
-                                prediction_counts[pred_here] = prediction_counts.get(pred_here, 0) + 1
+                                prediction_counts[pred_here] = prediction_counts.get(pred_here, 0) + 1 # this increases the count by 1, or adds the label (with count 1) to the dictionary
                             if not gold_here == self.null_label_id:
-                                gold_counts[gold_here] = gold_counts.get(gold_here, 0) + 1
+                                gold_counts[gold_here] = gold_counts.get(gold_here, 0) + 1 # this increases the count by 1, or adds the label (with count 1) to the dictionary
+            # update total counts (divisors in recall and precision)
             self.total_predicted += sum(prediction_counts.values())
             self.total_gold += sum(gold_counts.values())
+            # update correct counts (dividend in recall and precision)
             for label in gold_counts.keys():
-                self.correct_count += min(gold_counts.get(label, 0), prediction_counts.get(label, 0))
+                # the number of correct predictions for each label is the "overlap" between gold and predicted sequence, which is the minimum of the two counts.
+                self.correct_count += min(gold_counts.get(label, 0), prediction_counts.get(label, 0)) # we default the count to 0 if the label was not seen.
 
 
     def get_metric(self, reset: bool = False):
         """
+        Computes the actual score based on the previously collected internal counts.
+        
         Returns
         -------
         The accumulated f-score.
         """
+        # Just standard recall/precision/f-score calculation while checking that we don't divide by 0.
         if self.total_gold > 1e-12:
             recall = float(self.correct_count) / float(self.total_gold)
         else:
